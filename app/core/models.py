@@ -1,6 +1,3 @@
-"""
-Database models.
-"""
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -35,9 +32,10 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """User in the system."""
     email = models.EmailField(max_length = 255, unique = True)
-    name = models.CharField(max_length = 255)
+    name = models.CharField(max_length = 255, blank=True, null=True)
     is_active = models.BooleanField(default = True)
     is_staff = models.BooleanField(default = False)
+    registration_date = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()
 
