@@ -18,19 +18,28 @@ class Currency(models.Model):
 
     def clean(self):
         if self.default_currency:
-            if Currency.objects.filter(default_currency=True).exclude(pk=self.pk).exists():
+            if Currency.objects.filter(
+                    default_currency=True
+                    ).exclude(pk=self.pk).exists():
                 raise ValidationError('Only one currency can be default')
         super().clean()
 
 
 class Account(models.Model):
-    account_name = models.CharField(max_length=100, unique = True)
+    account_name = models.CharField(max_length=100, unique=True)
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
-    starting_balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
+    starting_balance = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2
+        )
     balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
     note = models.CharField(max_length=255, blank=True, null=True)
     include_balance_in_current_month = models.BooleanField(default=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

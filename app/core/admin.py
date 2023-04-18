@@ -8,7 +8,7 @@ from core import models
 class UserAdmin(BaseUserAdmin):
     """Define the admin pages for users."""
     ordering = ['-registration_date']
-    list_display = ['registration_date','email', 'is_active']
+    list_display = ['registration_date', 'email', 'is_active']
     fieldsets = (
         (None, {'fields': ('email', 'password', 'name')}),
         (
@@ -21,7 +21,10 @@ class UserAdmin(BaseUserAdmin):
                 )
             }
         ),
-        (_('Important dates'), {'fields': ('registration_date', 'last_login',)}),
+        (_('Important dates'), {'fields': (
+            'registration_date',
+            'last_login',
+            )}),
     )
     readonly_fields = ['registration_date', 'last_login']
     add_fieldsets = (
