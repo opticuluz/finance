@@ -8,15 +8,35 @@ jobs:
     name: Test and Lint
     runs-on: ubuntu-latest
     services:
-      image: postgres:15.1-alpine
-      env:
-      - POSTGRES_USER: ${{ secrets.DB_USER }}
-      - POSTGRES_PASSWORD: ${{ secrets.DB_PASS }}
-      - POSTGRES_HOST: ${{ secrets.DB_HOST }}
-      - POSTGRES_NAME: ${{ secrets.DB_NAME }} 
-      ports:
-        - ${{ secrets.DB_PORT }}:5432
-      options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:15.1-alpine
+        # Provide the password for postgres
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASS }}
+          POSTGRES_HOST: ${{ secrets.DB_HOST }}
+          POSTGRES_NAME: ${{ secrets.DB_NAME }}
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - ${{ secrets.DB_PORT }}:5432
+    # services:
+    #   image: postgres:15.1-alpine
+    #   env:
+    #   - POSTGRES_USER: ${{ secrets.DB_USER }}
+    #   - POSTGRES_PASSWORD: ${{ secrets.DB_PASS }}
+    #   - POSTGRES_HOST: ${{ secrets.DB_HOST }}
+    #   - POSTGRES_NAME: ${{ secrets.DB_NAME }} 
+    #   ports:
+    #     - ${{ secrets.DB_PORT }}:5432
+    #   options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
