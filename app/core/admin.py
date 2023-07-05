@@ -7,8 +7,9 @@ from core import models
 class UserAdmin(BaseUserAdmin):
 
     ordering = ['-registration_date']
+    # ordering = ['email']
     list_display = ['registration_date', 'email', 'is_active']
-    # list_display = ['email', 'is_active']
+    list_display = ['email', 'is_active']
     fieldsets = (
         (None, {'fields': ('email', 'password', 'name')}),
         (
