@@ -22,10 +22,25 @@ class Cashflow(models.Model):
         choices=PAYMENT_TYPE_CHOICES,
         default='expenses'
         )
-    charged_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='charged_cashflows')
-    targed_account = models.ForeignKey(Account, on_delete=models.PROTECT, null=True, blank=True, related_name='targeted_cashflows')
+    charged_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        related_name='charged_cashflows'
+        )
+    targed_account = models.ForeignKey(
+        Account,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='targed_cashflows'
+        )
     amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
-    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+        )
     date = models.DateField()
     note = models.CharField(max_length=255, blank=True, null=True)
     user = models.ForeignKey(

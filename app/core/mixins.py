@@ -6,7 +6,7 @@ class UserRestrictedAdminMixin:
         if not request.user.is_superuser:
             queryset = queryset.filter(user=request.user)
         return queryset
-    
+
     def get_list_filter(self, request):
         list_filter = super().get_list_filter(request)
         if not request.user.is_superuser:

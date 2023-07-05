@@ -7,8 +7,16 @@ from cashflow.models import Cashflow
 class CashflowInline(admin.TabularInline):
     model = Cashflow
     fk_name = 'charged_account'
-    fk_name = 'targed_account'
-    readonly_fields = ['created_at', 'payment_type', 'charged_account', 'targed_account', 'amount', 'category', 'date', 'note']
+    readonly_fields = [
+        'created_at',
+        'payment_type',
+        'charged_account',
+        'targed_account',
+        'amount',
+        'category',
+        'date',
+        'note'
+        ]
     can_delete = False
     extra = 0
 
@@ -16,10 +24,10 @@ class CashflowInline(admin.TabularInline):
         if obj:  # obj will be None when creating a new Account
             return self.readonly_fields + ['user']
         return self.readonly_fields
-    
+
     def has_add_permission(self, request, obj=None):
         return False
-    
+
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         queryset = queryset.order_by('-created_at')

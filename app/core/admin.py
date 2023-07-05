@@ -48,7 +48,7 @@ class UserAdmin(BaseUserAdmin):
         if not request.user.is_superuser:
             qs = qs.filter(id=request.user.id)
         return qs
-    
+
     def get_readonly_fields(self, request, obj=None):
         if not request.user.is_superuser:
             # Make permissions field read-only for non-superusers

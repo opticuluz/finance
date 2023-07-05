@@ -2,12 +2,16 @@ from django.contrib import admin, messages
 from .models import Cashflow
 from core.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from django.db.models import Sum
+from decimal import Decimal
 
 
 class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     class Media:
-        js = ['js/cashflow_admin.js']
+        js = ['js/change_form.js']
 
     ordering = ['-created_at']
     list_display = [
@@ -31,23 +35,68 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj=obj, **kwargs)
-        form.base_fields['charged_account'].queryset = form.base_fields['charged_account'].queryset.filter(user=request.user)
-        form.base_fields['targed_account'].queryset = form.base_fields['targed_account'].queryset.filter(user=request.user)
-        form.base_fields['category'].queryset = form.base_fields['category'].queryset.filter(user=request.user)
+        form.base_fields['charged_account'].queryset = form.base_fields[
+            'charged_account'
+            ].queryset.filter(user=request.user)
+        form.base_fields['targed_account'].queryset = form.base_fields[
+            'targed_account'
+            ].queryset.filter(user=request.user)
+        form.base_fields['category'].queryset = form.base_fields[
+            'category'
+            ].queryset.filter(user=request.user)
         return form
 
     def save_model(self, request, obj, form, change):
         if obj.payment_type == 'transfer' and not obj.targed_account:
-            messages.error(request, 'Target account must be specified for transfers.')
-        elif obj.payment_type == 'transfer' and (obj.charged_account == obj.targed_account):
-            messages.error(request, 'Charged account and target account cannot be the same.')
+            messages.error(
+                request,
+                'Target account must be specified for transfers.'
+                )
+        elif obj.payment_type == 'transfer' and (
+            obj.charged_account == obj.targed_account
+        ):
+            messages.error(
+                request,
+                'Charged account and target account cannot be the same.'
+                )
         elif obj.payment_type != 'transfer' and obj.targed_account:
-            messages.error(request, 'Target account must be empty for expenses and income.')
-        elif obj.date > timezone.now().date():
+            messages.error(
+                request,
+                'Target account must be empty for expenses and income.'
+                )
+        elif obj.date > timezone.localtime().date():
             messages.error(request, 'Date cannot be in the future.')
         else:
             obj.user = request.user
             super().save_model(request, obj, form, change)
+
+    @receiver([post_save, post_delete], sender=Cashflow)
+    def update_account_balance(sender, instance, **kwargs):
+        charged_account = instance.charged_account
+
+        charged_balance = charged_account.charged_cashflows.filter(
+            payment_type='income'
+            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+        charged_balance -= charged_account.charged_cashflows.filter(
+            payment_type__in=['expenses', 'transfer']
+            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+        charged_account.balance = charged_balance
+        charged_account.save()
+
+        if instance.payment_type == 'transfer':
+            targed_account = instance.targed_account
+
+            targed_balance = targed_account.targed_cashflows.filter(
+                payment_type='transfer'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+            targed_account.balance = targed_balance
+            targed_account.save()
+
+    post_save.connect(update_account_balance, sender=Cashflow)
+    post_delete.connect(update_account_balance, sender=Cashflow)
 
 
 admin.site.register(Cashflow, CashflowAdmin)
