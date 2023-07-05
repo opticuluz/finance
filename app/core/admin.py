@@ -8,6 +8,7 @@ class UserAdmin(BaseUserAdmin):
 
     ordering = ['-registration_date']
     list_display = ['registration_date', 'email', 'is_active']
+    # list_display = ['email', 'is_active']
     fieldsets = (
         (None, {'fields': ('email', 'password', 'name')}),
         (
@@ -38,6 +39,7 @@ class UserAdmin(BaseUserAdmin):
                 'is_active',
                 'is_staff',
                 'is_superuser',
+                'groups',
             )
         }),
     )

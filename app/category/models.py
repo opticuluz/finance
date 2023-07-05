@@ -8,7 +8,7 @@ class Category(models.Model):
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
 
-    category_name = models.CharField(max_length=255, unique=True)
+    category_name = models.CharField(max_length=255)
     active = models.BooleanField(default=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

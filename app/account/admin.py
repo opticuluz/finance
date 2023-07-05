@@ -3,17 +3,20 @@ from .models import Account, Currency
 
 
 class AccountAdmin(admin.ModelAdmin):
-    ordering = ['account_name']
+    ordering = ['-created_at']
     list_display = [
         'account_name',
         'balance',
         'currency',
-        'user',
         'include_balance_in_current_month'
         ]
     list_filter = ['account_name', 'include_balance_in_current_month', 'user']
     search_fields = ['account_name', 'user']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['user', 'created_at', 'updated_at']
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        super().save_model(request, obj, form, change)
 
 
 admin.site.register(Account, AccountAdmin)

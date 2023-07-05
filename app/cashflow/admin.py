@@ -13,9 +13,19 @@ class CashflowAdmin(admin.ModelAdmin):
         'category',
         'date'
         ]
-    list_filter = ['created_at', 'date', 'payment_type', 'charged_account', 'user']
+    list_filter = [
+        'created_at',
+        'date',
+        'payment_type',
+        'charged_account',
+        'user'
+        ]
     search_fields = ['amount']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['user', 'created_at', 'updated_at']
+
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        super().save_model(request, obj, form, change)
 
 
 admin.site.register(Cashflow, CashflowAdmin)
