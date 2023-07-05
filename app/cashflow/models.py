@@ -7,7 +7,7 @@ from category.models import Category
 PAYMENT_TYPE_CHOICES = [
         ('expenses', 'Expenses'),
         ('income', 'Income'),
-        # ('transfer', 'Transfer'),
+        ('transfer', 'Transfer'),
     ]
 
 
@@ -22,7 +22,8 @@ class Cashflow(models.Model):
         choices=PAYMENT_TYPE_CHOICES,
         default='expenses'
         )
-    charged_account = models.ForeignKey(Account, on_delete=models.PROTECT)
+    charged_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='charged_cashflows')
+    targed_account = models.ForeignKey(Account, on_delete=models.PROTECT, null=True, blank=True, related_name='targeted_cashflows')
     amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     date = models.DateField()

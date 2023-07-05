@@ -6,7 +6,9 @@ from cashflow.models import Cashflow
 
 class CashflowInline(admin.TabularInline):
     model = Cashflow
-    readonly_fields = ['created_at', 'payment_type', 'charged_account', 'amount', 'category', 'date', 'note']
+    fk_name = 'charged_account'
+    fk_name = 'targed_account'
+    readonly_fields = ['created_at', 'payment_type', 'charged_account', 'targed_account', 'amount', 'category', 'date', 'note']
     can_delete = False
     extra = 0
 
