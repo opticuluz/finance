@@ -14,7 +14,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Checkout
-        uses: actions/checkout@v3            
+        uses: actions/checkout@v3    
+      - name: Start PostgreSQL service
+        run: docker-compose -f docker-compose-local.yml up -d db        
       - name: Test
         run: docker-compose -f docker-compose-local.yml run --rm app sh -c "python manage.py wait_for_db && python manage.py test"
       - name: Lint
