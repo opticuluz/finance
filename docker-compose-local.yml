@@ -27,12 +27,9 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_HOSTNAME=db
       - POSTGRES_DB=finance_db
       - POSTGRES_USER=postgres_user
       - POSTGRES_PASSWORD=postgres_password
-    ports:
-      - "5432:5432"
       
 
 volumes:
