@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.db.models import Sum
 from decimal import Decimal
 from django.conf import settings
-from djmoney.contrib.exchange.models import get_rate, Rate
+from djmoney.contrib.exchange.models import get_rate
 
 
 class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -22,6 +22,7 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'charged_account',
         'targed_account',
         'amount',
+        'amount_in_base_currency',
         'category',
         'date'
         ]
@@ -33,7 +34,12 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'user'
         ]
     search_fields = ['amount']
-    readonly_fields = ['user', 'created_at', 'updated_at']
+    readonly_fields = [
+        'amount_in_base_currency',
+        'user',
+        'created_at',
+        'updated_at'
+        ]
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj=obj, **kwargs)
@@ -72,6 +78,16 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             obj.user = request.user
             super().save_model(request, obj, form, change)
 
+        if obj.charged_account.currency.title == settings.BASE_CURRENCY:
+            obj.amount_in_base_currency = obj.amount
+        else:
+            rate = get_rate(
+                obj.charged_account.currency.title,
+                settings.BASE_CURRENCY
+                )
+            obj.amount_in_base_currency = Decimal(obj.amount) * rate
+        super().save_model(request, obj, form, change)
+
     @receiver([post_save, post_delete], sender=Cashflow)
     def update_account_balance(sender, instance, **kwargs):
         charged_account = instance.charged_account
@@ -90,35 +106,60 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if charged_account.currency.title == settings.BASE_CURRENCY:
             charged_account.balance_in_base_currency = charged_account.balance
         else:
-            rate = get_rate(charged_account.currency.title, settings.BASE_CURRENCY)
+            rate = get_rate(
+                charged_account.currency.title,
+                settings.BASE_CURRENCY
+                )
             if rate:
-                charged_account.balance_in_base_currency = charged_account.balance * rate
-            else:
-                messages.warning(request, f"Rate not found for {charged_account.currency.title}")
+                charged_account.balance_in_base_currency = (
+                    charged_account.balance * rate
+                    )
+            # else:
+            #     messages.warning(
+            #         request,
+            #         f"Rate not found for {charged_account.currency.title}"
+            #         )
         charged_account.save()
-
 
         if instance.payment_type == 'transfer':
             targed_account = instance.targed_account
 
-            targed_balance = targed_account.targed_cashflows.filter(
+            targed_balance1 = targed_account.targed_cashflows.filter(
                 payment_type='transfer'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+            targed_balance2 = targed_account.charged_cashflows.filter(
+                payment_type='income'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+            targed_balance = targed_balance1 + targed_balance2
+
+            targed_balance -= targed_account.charged_cashflows.filter(
+                payment_type='expenses'
                 ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
             targed_account.balance = targed_balance
             targed_account.save()
 
-                    
             if targed_account.currency.title == settings.BASE_CURRENCY:
-                targed_account.balance_in_base_currency = targed_account.balance
+                targed_account.balance_in_base_currency = (
+                    targed_account.balance
+                    )
             else:
-                rate = get_rate(targed_account.currency.title, settings.BASE_CURRENCY)
+                rate = get_rate(
+                    targed_account.currency.title,
+                    settings.BASE_CURRENCY
+                    )
                 if rate:
-                    targed_account.balance_in_base_currency = targed_account.balance * rate
-                else:
-                    messages.warning(request, f"Rate not found for {targed_account.currency.title}")
+                    targed_account.balance_in_base_currency = (
+                        targed_account.balance * rate
+                        )
+                # else:
+                #     messages.warning(
+                #         request,
+                #         f"Rate not found for {targed_account.currency.title}"
+                #         )
             targed_account.save()
-
 
     post_save.connect(update_account_balance, sender=Cashflow)
     post_delete.connect(update_account_balance, sender=Cashflow)

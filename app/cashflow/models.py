@@ -35,6 +35,11 @@ class Cashflow(models.Model):
         related_name='targed_cashflows'
         )
     amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
+    amount_in_base_currency = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2
+        )
     category = models.ForeignKey(
         Category,
         on_delete=models.PROTECT,

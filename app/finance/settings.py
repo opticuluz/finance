@@ -43,8 +43,8 @@ INSTALLED_APPS = [
     'account',
     'category',
     'cashflow',
-    # 'djmoney',
     'djmoney.contrib.exchange',
+    'report',
 ]
 
 MIDDLEWARE = [

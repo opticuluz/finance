@@ -3,13 +3,11 @@ from .models import Account, Currency
 from core.mixins import UserRestrictedAdminMixin
 from cashflow.models import Cashflow
 from django.conf import settings
-# from djmoney.contrib.exchange import get_rate
-# from djmoney.contrib.exchange.models import get_rate
-# from djmoney.contrib.exchange.backends import FixerBackend
-from djmoney.contrib.exchange.models import get_rate, Rate
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from djmoney.contrib.exchange.models import get_rate
 from decimal import Decimal
+from datetime import datetime
+from django.db.models import Sum, Q
+from report.models import Report
 
 
 class CashflowInline(admin.TabularInline):
@@ -21,6 +19,38 @@ class CashflowInline(admin.TabularInline):
         'charged_account',
         'targed_account',
         'amount',
+        'amount_in_base_currency',
+        'category',
+        'date',
+        'note'
+        ]
+    can_delete = False
+    extra = 0
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ['user']
+        return self.readonly_fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.order_by('-created_at')
+        return queryset
+
+
+class CashflowTargedInline(admin.TabularInline):
+    model = Cashflow
+    fk_name = 'targed_account'
+    readonly_fields = [
+        'created_at',
+        'payment_type',
+        'charged_account',
+        'targed_account',
+        'amount',
+        'amount_in_base_currency',
         'category',
         'date',
         'note'
@@ -53,44 +83,25 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         ]
     list_filter = ['account_name', 'include_balance_in_current_month', 'user']
     search_fields = ['account_name', 'user']
-    readonly_fields = ['balance', 'balance_in_base_currency', 'user', 'created_at', 'updated_at']
-    inlines = [CashflowInline]
-        
+    readonly_fields = [
+        'balance',
+        'balance_in_base_currency',
+        'user',
+        'created_at',
+        'updated_at'
+        ]
+    inlines = [CashflowInline, CashflowTargedInline]
 
     def save_model(self, request, obj, form, change):
         if obj.currency.title == settings.BASE_CURRENCY:
             obj.balance_in_base_currency = obj.balance
         else:
-            # rate = get_rate(obj.currency.currency, settings.BASE_CURRENCY)
-            # obj.balance_in_base_currency = Decimal(obj.balance) * rate
-            obj.balance_in_base_currency = Decimal(obj.balance) * get_rate(obj.currency.title, settings.BASE_CURRENCY)
+            rate = get_rate(obj.currency.title, settings.BASE_CURRENCY)
+            obj.balance_in_base_currency = Decimal(obj.balance) * rate
         super().save_model(request, obj, form, change)
 
+    actions = ['recalculate_balance_in_base_currency', 'create_report']
 
-    # actions = ['recalculate_balance_in_base_currency']
-    
-    # def recalculate_balance_in_base_currency(self, request, queryset):
-    #     for account in queryset:
-    #         if account.currency.title == settings.BASE_CURRENCY:
-    #             account.balance_in_base_currency = account.balance
-    #         else:
-    #             rate = Rate.objects.filter(
-    #                 currency=account.currency.title,
-    #                 to_currency=settings.BASE_CURRENCY
-    #             ).order_by('-last_updated').first()
-    #             if rate:
-    #                 account.balance_in_base_currency = account.balance * Decimal(rate.rate)
-    #             else:
-    #                 messages.warning(request, f"Rate not found for {account.currency.title}")
-    #                 continue
-    #         account.save()
-    #     messages.success(request, "Balance in base currency recalculated for selected accounts.")
-    
-    # recalculate_balance_in_base_currency.short_description = "Recalculate balance in base currency"
-
-
-    actions = ['recalculate_balance_in_base_currency']
-    
     def recalculate_balance_in_base_currency(self, request, queryset):
         for account in queryset:
             if account.currency.title == settings.BASE_CURRENCY:
@@ -100,40 +111,83 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 if rate:
                     account.balance_in_base_currency = account.balance * rate
                 else:
-                    messages.warning(request, f"Rate not found for {account.currency.title}")
+                    messages.warning(
+                        request,
+                        f"Rate not found for {account.currency.title}"
+                        )
                     continue
             account.save()
-        messages.success(request, "Balance in base currency recalculated for selected accounts.")
-    
-    recalculate_balance_in_base_currency.short_description = "Recalculate balance in base currency"
+        messages.success(
+            request,
+            "Balance in base currency recalculated for selected accounts."
+            )
 
-    # @receiver(post_save, sender=Account)
-    # def recalculate_balance_in_base_currency(sender, instance, **kwargs):
-    #     if kwargs['created'] or 'currency' in instance.changed_fields:
-    #         instance.save()
+    recalculate_balance_in_base_currency.short_description = (
+        "Recalculate balance in base currency"
+        )
 
-    # @receiver(post_save, sender=Rate)
-    # def recalculate_account_balance_in_base_currency(sender, instance, **kwargs):
-    #     accounts = Account.objects.filter(currency__currency=instance.source_currency)
-    #     for account in accounts:
-    #         if account.currency.currency != settings.BASE_CURRENCY:
-    #             account.save()
+    def create_report(self, request, queryset):
+        current_month_start = datetime.now().replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+            )
+        income = queryset.annotate(
+            total_income=Sum(
+                'charged_cashflows__amount_in_base_currency',
+                filter=Q(
+                    charged_cashflows__payment_type='income',
+                    charged_cashflows__date__gte=current_month_start
+                    )
+                )
+        ).values('total_income').aggregate(
+            Sum('total_income')
+            )['total_income__sum'] or 0.0
+        expenses = queryset.annotate(
+            total_expenses=Sum(
+                'charged_cashflows__amount_in_base_currency',
+                filter=Q(
+                    charged_cashflows__payment_type='expenses',
+                    charged_cashflows__date__gte=current_month_start
+                    )
+                )
+        ).values('total_expenses').aggregate(
+            Sum('total_expenses')
+            )['total_expenses__sum'] or 0.0
+        total_balance = queryset.filter(
+            user=request.user
+            ).aggregate(
+            total_balance=Sum('balance_in_base_currency')
+            )['total_balance'] or 0.0
 
-    # @receiver(post_save, sender=Rate)
-    # def recalculate_account_balance_in_base_currency(sender, instance, **kwargs):
-    #     accounts = Account.objects.filter(currency__title=instance.source_currency)
-    #     for account in accounts:
-    #         if account.currency.title != settings.BASE_CURRENCY:
-    #             last_update = instance.last_update
-    #             rate = get_rate(account.currency.title, settings.BASE_CURRENCY, last_update)
-    #             account.balance_in_base_currency = account.balance * rate
-    #             account.save()
+        messages.success(request, "Report created successfully.")
+
+        report = Report.objects.filter(
+            user=request.user,
+            created_at__year=current_month_start.year,
+            created_at__month=current_month_start.month
+        ).last()
+
+        if report:
+            report.total_balance_in_base_currency = total_balance
+            report.income_in_current_month = income
+            report.expenses_in_current_month = expenses
+            report.save()
+        else:
+            report = Report.objects.create(
+                user=request.user,
+                total_balance_in_base_currency=total_balance,
+                income_in_current_month=income,
+                expenses_in_current_month=expenses
+            )
+            report.save()
+
+    create_report.short_description = "Create report"
 
 
 admin.site.register(Account, AccountAdmin)
-
-
-
 
 
 class CurrencyAdmin(admin.ModelAdmin):
