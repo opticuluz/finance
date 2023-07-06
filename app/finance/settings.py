@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'account',
     'category',
     'cashflow',
-    'djmoney',
+    # 'djmoney',
     'djmoney.contrib.exchange',
 ]
 
@@ -157,3 +157,5 @@ AUTH_USER_MODEL = 'core.User'
 EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
 
 FIXER_ACCESS_KEY = 'c6206ca966ddba7d45a06f7edccd8700'
+
+BASE_CURRENCY = 'USD'

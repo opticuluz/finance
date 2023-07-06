@@ -11,25 +11,25 @@ class Currency(models.Model):
 
     title = models.CharField(max_length=3, unique=True)
     symbol = models.CharField(max_length=1, unique=True)
-    default_currency = models.BooleanField(default=False)
+    # default_currency = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
 
-    def clean(self):
-        if self.default_currency:
-            if Currency.objects.filter(
-                    default_currency=True
-                    ).exclude(pk=self.pk).exists():
-                raise ValidationError('Only one currency can be default')
-        super().clean()
+    # def clean(self):
+    #     if self.default_currency:
+    #         if Currency.objects.filter(
+    #                 default_currency=True
+    #                 ).exclude(pk=self.pk).exists():
+    #             raise ValidationError('Only one currency can be default')
+    #     super().clean()
 
 
 class Account(models.Model):
     account_name = models.CharField(max_length=100, unique=True)
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
-    balance_in_currency = models.DecimalField(
+    balance_in_base_currency = models.DecimalField(
         default=0.0,
         max_digits=20,
         decimal_places=2,

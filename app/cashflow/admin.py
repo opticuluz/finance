@@ -6,6 +6,8 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
 from decimal import Decimal
+from django.conf import settings
+from djmoney.contrib.exchange.models import get_rate, Rate
 
 
 class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -85,6 +87,17 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         charged_account.balance = charged_balance
         charged_account.save()
 
+        if charged_account.currency.title == settings.BASE_CURRENCY:
+            charged_account.balance_in_base_currency = charged_account.balance
+        else:
+            rate = get_rate(charged_account.currency.title, settings.BASE_CURRENCY)
+            if rate:
+                charged_account.balance_in_base_currency = charged_account.balance * rate
+            else:
+                messages.warning(request, f"Rate not found for {charged_account.currency.title}")
+        charged_account.save()
+
+
         if instance.payment_type == 'transfer':
             targed_account = instance.targed_account
 
@@ -94,6 +107,18 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
             targed_account.balance = targed_balance
             targed_account.save()
+
+                    
+            if targed_account.currency.title == settings.BASE_CURRENCY:
+                targed_account.balance_in_base_currency = targed_account.balance
+            else:
+                rate = get_rate(targed_account.currency.title, settings.BASE_CURRENCY)
+                if rate:
+                    targed_account.balance_in_base_currency = targed_account.balance * rate
+                else:
+                    messages.warning(request, f"Rate not found for {targed_account.currency.title}")
+            targed_account.save()
+
 
     post_save.connect(update_account_balance, sender=Cashflow)
     post_delete.connect(update_account_balance, sender=Cashflow)
