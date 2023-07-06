@@ -16,7 +16,7 @@ class Currency(models.Model):
 
 
 class Account(models.Model):
-    account_name = models.CharField(max_length=100, unique=True)
+    account_name = models.CharField(max_length=100, unique=False)
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
     balance_in_base_currency = models.DecimalField(
@@ -36,4 +36,4 @@ class Account(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.account_name
+        return f"{self.account_name} ({self.currency.symbol})"
