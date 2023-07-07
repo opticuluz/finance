@@ -194,6 +194,7 @@ class CurrencyAdmin(admin.ModelAdmin):
     ordering = ['title']
     list_display = ['title', 'symbol']
     search_fields = ['title']
+    readonly_fields = ['created_at', 'updated_at']
 
 
 admin.site.register(Currency, CurrencyAdmin)

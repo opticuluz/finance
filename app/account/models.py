@@ -10,6 +10,14 @@ class Currency(models.Model):
 
     title = models.CharField(max_length=3, unique=True)
     symbol = models.CharField(max_length=1, unique=True)
+    rate = models.DecimalField(
+        max_digits=20,
+        decimal_places=6,
+        blank=True,
+        null=True
+        )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.title

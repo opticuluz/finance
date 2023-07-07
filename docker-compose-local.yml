@@ -41,47 +41,29 @@ services:
     ports:
       - "6379:6379"
 
-  celery-worker:
+  celery-beat: &celery
     build:
       context: .
-      args:
-        - DEV=true
-    command: sh -c "celery -A finance purge -f && celery -A finance worker --loglevel=info -E"
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
       - REDIS_HOST=redis
+    volumes:
+      - ./app:/app
     depends_on:
+      - redis
       - db
-      - redis
+    working_dir: /app
+    command: celery -A finance beat -l info
 
-  celery-beat:
-    build:
-      context: .
-      args:
-        - DEV=true
-    command: sh -c "rm -f celerybeat-schedule && celery -A finance beat --loglevel=info"
-    environment:
-      - DJANGO_SETTINGS_MODULE=finance.settings
-      - REDIS_HOST=redis
-    depends_on:
-      - celery-worker
-      - redis
+  celery-worker:
+    <<: *celery
+    command: celery -A finance worker -l info -E
 
-  flower:
-    build:
-      context: .
-      args:
-        - DEV=true
-    command: celery -A finance flower
-    # command: flower -A finance --port=5555
+  celery-flower:
+    <<: *celery
     ports:
-      - "5555:5555"
-    environment:
-      - DJANGO_SETTINGS_MODULE=finance.settings
-      - REDIS_HOST=redis
-    depends_on:
-      - celery-worker
-      - celery-beat
+      - 5555:5555
+    command: celery -A finance flower
 
 
 volumes:
