@@ -1,5 +1,4 @@
 from django.contrib import admin, messages
-# from account.models import Account
 from .models import Cashflow
 from core.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
@@ -7,7 +6,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
-from django.conf import settings
+from constance import config
 from djmoney.contrib.exchange.models import get_rate
 
 
@@ -79,15 +78,18 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             obj.user = request.user
             super().save_model(request, obj, form, change)
 
-        if obj.charged_account.currency.title == settings.BASE_CURRENCY:
+        if obj.charged_account.currency.title == config.BASE_CURRENCY:
             obj.amount_in_base_currency = obj.amount
         else:
             rate = get_rate(
                 obj.charged_account.currency.title,
-                settings.BASE_CURRENCY
+                config.BASE_CURRENCY
                 )
             amount_in_base_currency = Decimal(obj.amount) * rate
-            rounded_amount = amount_in_base_currency.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+            rounded_amount = amount_in_base_currency.quantize(
+                Decimal('0.00'),
+                rounding=ROUND_HALF_UP
+                )
             obj.amount_in_base_currency = rounded_amount
         super().save_model(request, obj, form, change)
 
@@ -106,12 +108,12 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         charged_account.balance = charged_balance
         charged_account.save()
 
-        if charged_account.currency.title == settings.BASE_CURRENCY:
+        if charged_account.currency.title == config.BASE_CURRENCY:
             charged_account.balance_in_base_currency = charged_account.balance
         else:
             rate = get_rate(
                 charged_account.currency.title,
-                settings.BASE_CURRENCY
+                config.BASE_CURRENCY
                 )
             if rate:
                 charged_account.balance_in_base_currency = (
@@ -144,14 +146,14 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             targed_account.balance = targed_balance
             targed_account.save()
 
-            if targed_account.currency.title == settings.BASE_CURRENCY:
+            if targed_account.currency.title == config.BASE_CURRENCY:
                 targed_account.balance_in_base_currency = (
                     targed_account.balance
                     )
             else:
                 rate = get_rate(
                     targed_account.currency.title,
-                    settings.BASE_CURRENCY
+                    config.BASE_CURRENCY
                     )
                 if rate:
                     targed_account.balance_in_base_currency = (

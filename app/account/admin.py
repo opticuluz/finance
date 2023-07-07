@@ -2,12 +2,12 @@ from django.contrib import admin, messages
 from .models import Account, Currency
 from core.mixins import UserRestrictedAdminMixin
 from cashflow.models import Cashflow
-from django.conf import settings
 from djmoney.contrib.exchange.models import get_rate
 from decimal import Decimal
 from datetime import datetime
 from django.db.models import Sum, Q
 from report.models import Report
+from constance import config
 
 
 class CashflowInline(admin.TabularInline):
@@ -93,10 +93,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     inlines = [CashflowInline, CashflowTargedInline]
 
     def save_model(self, request, obj, form, change):
-        if obj.currency.title == settings.BASE_CURRENCY:
+        if obj.currency.title == config.BASE_CURRENCY:
             obj.balance_in_base_currency = obj.balance
         else:
-            rate = get_rate(obj.currency.title, settings.BASE_CURRENCY)
+            rate = get_rate(obj.currency.title, config.BASE_CURRENCY)
             obj.balance_in_base_currency = Decimal(obj.balance) * rate
         super().save_model(request, obj, form, change)
 
@@ -104,10 +104,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     def recalculate_balance_in_base_currency(self, request, queryset):
         for account in queryset:
-            if account.currency.title == settings.BASE_CURRENCY:
+            if account.currency.title == config.BASE_CURRENCY:
                 account.balance_in_base_currency = account.balance
             else:
-                rate = get_rate(account.currency.title, settings.BASE_CURRENCY)
+                rate = get_rate(account.currency.title, config.BASE_CURRENCY)
                 if rate:
                     account.balance_in_base_currency = account.balance * rate
                 else:
