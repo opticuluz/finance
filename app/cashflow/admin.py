@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
-from djmoney.contrib.exchange.models import get_rate
+from account.admin import base_currency_rate
 
 
 class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -81,10 +81,12 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if obj.charged_account.currency.title == config.BASE_CURRENCY:
             obj.amount_in_base_currency = obj.amount
         else:
-            rate = get_rate(
-                obj.charged_account.currency.title,
-                config.BASE_CURRENCY
+            rate = Decimal(
+                (base_currency_rate())
+                /
+                obj.charged_account.currency.rate
                 )
+
             amount_in_base_currency = Decimal(obj.amount) * rate
             rounded_amount = amount_in_base_currency.quantize(
                 Decimal('0.00'),
@@ -111,9 +113,10 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if charged_account.currency.title == config.BASE_CURRENCY:
             charged_account.balance_in_base_currency = charged_account.balance
         else:
-            rate = get_rate(
-                charged_account.currency.title,
-                config.BASE_CURRENCY
+            rate = (
+                Decimal(base_currency_rate())
+                /
+                charged_account.currency.rate
                 )
             if rate:
                 charged_account.balance_in_base_currency = (
@@ -151,9 +154,10 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                     targed_account.balance
                     )
             else:
-                rate = get_rate(
-                    targed_account.currency.title,
-                    config.BASE_CURRENCY
+                rate = (
+                    Decimal(base_currency_rate())
+                    /
+                    targed_account.currency.rate
                     )
                 if rate:
                     targed_account.balance_in_base_currency = (

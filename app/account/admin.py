@@ -2,12 +2,12 @@ from django.contrib import admin, messages
 from .models import Account, Currency
 from core.mixins import UserRestrictedAdminMixin
 from cashflow.models import Cashflow
-from djmoney.contrib.exchange.models import get_rate
 from decimal import Decimal
 from datetime import datetime
 from django.db.models import Sum, Q
 from report.models import Report
 from constance import config
+from django.utils.translation import gettext_lazy as _
 
 
 class CashflowInline(admin.TabularInline):
@@ -72,6 +72,30 @@ class CashflowTargedInline(admin.TabularInline):
         return queryset
 
 
+def base_currency_rate():
+    base_currency = config.BASE_CURRENCY
+    try:
+        base_currency_obj = Currency.objects.get(title=base_currency)
+        if base_currency_obj.rate:
+            return base_currency_obj.rate
+        else:
+            messages.warning(
+                # request,
+                _("Rate not found for %(currency)s")
+                %
+                {'currency': base_currency}
+            )
+    except Currency.DoesNotExist:
+        messages.warning(
+            # request,
+            _("Base currency %(currency)s not found")
+            %
+            {'currency': base_currency}
+        )
+
+    return None
+
+
 class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     ordering = ['-created_at']
     list_display = [
@@ -96,7 +120,7 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if obj.currency.title == config.BASE_CURRENCY:
             obj.balance_in_base_currency = obj.balance
         else:
-            rate = get_rate(obj.currency.title, config.BASE_CURRENCY)
+            rate = Decimal(base_currency_rate()) / obj.currency.rate
             obj.balance_in_base_currency = Decimal(obj.balance) * rate
         super().save_model(request, obj, form, change)
 
@@ -107,7 +131,7 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             if account.currency.title == config.BASE_CURRENCY:
                 account.balance_in_base_currency = account.balance
             else:
-                rate = get_rate(account.currency.title, config.BASE_CURRENCY)
+                rate = Decimal(base_currency_rate()) / account.currency.rate
                 if rate:
                     account.balance_in_base_currency = account.balance * rate
                 else:
@@ -192,7 +216,7 @@ admin.site.register(Account, AccountAdmin)
 
 class CurrencyAdmin(admin.ModelAdmin):
     ordering = ['title']
-    list_display = ['title', 'symbol']
+    list_display = ['title', 'symbol', 'rate', 'updated_at']
     search_fields = ['title']
     readonly_fields = ['created_at', 'updated_at']
 
