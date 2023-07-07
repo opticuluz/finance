@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from account.models import Account
 from category.models import Category
+from django.core.exceptions import ValidationError
 
 
 PAYMENT_TYPE_CHOICES = [
@@ -57,3 +58,11 @@ class Cashflow(models.Model):
 
     def __str__(self):
         return str(self.payment_type)
+    
+    def clean(self):
+        if self.charged_account == self.targed_account :
+            raise ValidationError("Charged and targed accounts cannot be the same")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

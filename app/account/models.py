@@ -36,4 +36,4 @@ class Account(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.account_name} ({self.currency.symbol})"
+        return f"{self.account_name} ({self.currency.title})"

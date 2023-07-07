@@ -1,11 +1,12 @@
 from django.contrib import admin, messages
+# from account.models import Account
 from .models import Cashflow
 from core.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.conf import settings
 from djmoney.contrib.exchange.models import get_rate
 
@@ -85,7 +86,9 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 obj.charged_account.currency.title,
                 settings.BASE_CURRENCY
                 )
-            obj.amount_in_base_currency = Decimal(obj.amount) * rate
+            amount_in_base_currency = Decimal(obj.amount) * rate
+            rounded_amount = amount_in_base_currency.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+            obj.amount_in_base_currency = rounded_amount
         super().save_model(request, obj, form, change)
 
     @receiver([post_save, post_delete], sender=Cashflow)
