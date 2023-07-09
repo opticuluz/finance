@@ -25,9 +25,9 @@ def update_all_rates():
                     currency = Currency.objects.get(title=currency_title)
                     currency.rate = rate_value
                     currency.save()
-                    # currency.rate_in_base = rate_value
-                    # currency.rate_in_base = base_currency_rate()
-                    currency.rate_in_base = Decimal(currency.rate) / Decimal(base_currency_rate())
+                    currency.rate_in_base = (
+                        Decimal(currency.rate) / Decimal(base_currency_rate())
+                        )
                     currency.save()
                 except Currency.DoesNotExist:
                     pass

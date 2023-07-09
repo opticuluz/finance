@@ -58,20 +58,13 @@ services:
       - redis
       - db
       - app
-    # command: celery -A finance beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     command: >
       sh -c "celery -A finance purge -f &&
              celery -A finance beat -l debug --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     
-
   celery-worker:
     <<: *celery
-    # command: >
-    #   sh -c "celery -A finance purge -f &&
-    #          celery -A finance worker -l info -E"
     command: celery -A finance worker -l debug -E
-
-    # celery -A finance purge
 
   celery-flower:
     <<: *celery
