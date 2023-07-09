@@ -16,6 +16,12 @@ class Currency(models.Model):
         blank=True,
         null=True
         )
+    rate_in_base = models.DecimalField(
+        max_digits=20,
+        decimal_places=6,
+        blank=True,
+        null=True
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -165,6 +165,7 @@ CONSTANCE_REDIS_CONNECTION = {
 }
 
 CONSTANCE_CONFIG = {
+    'FIXER_URL': ('http://data.fixer.io/api/latest', 'Fixel url'),
     'FIXER_ACCESS_KEY': ('', 'Fixer Access Key'),
     'BASE_CURRENCY': ('USD', 'Base Currency'),
 }
