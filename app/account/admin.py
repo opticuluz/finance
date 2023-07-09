@@ -8,6 +8,7 @@ from django.db.models import Sum, Q
 from report.models import Report
 from constance import config
 from django.utils.translation import gettext_lazy as _
+import requests
 
 
 class CashflowInline(admin.TabularInline):
@@ -94,6 +95,35 @@ def base_currency_rate():
         )
 
     return None
+
+
+def update_all_rates():
+    currency_titles = Currency.objects.values_list('title', flat=True)
+    currency_titles_str = ','.join(currency_titles)
+
+    access_key = config.FIXER_ACCESS_KEY
+    fixer_url = 'http://data.fixer.io/api/latest'
+    url = f'{fixer_url}?access_key={access_key}&symbols={currency_titles_str}'
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        rates = data.get('rates')
+        if rates:
+            for currency_title, rate_value in rates.items():
+                try:
+                    currency = Currency.objects.get(title=currency_title)
+                    currency.rate = rate_value
+                    currency.save()
+                except Currency.DoesNotExist:
+                    # Handle case when the currency is not found
+                    pass
+        else:
+            # Handle case when rates are not available in the JSON data
+            pass
+    else:
+        # Handle error cases
+        return None
 
 
 class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):

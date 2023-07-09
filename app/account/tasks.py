@@ -1,13 +1,16 @@
-from celery import shared_task
-from celery.utils.log import get_task_logger
+# from celery import shared_task
+# from celery.utils.log import get_task_logger
+from finance.celery import app
+from account.admin import update_all_rates
 
 
-logger = get_task_logger(__name__)
+# # logger = get_task_logger(__name__)
 
 
-@shared_task
+@app.task
 def update_rates():
-    logger.info("The sample task just ran.")
+    update_all_rates()
+    # logger.info("The sample task just ran.")
 
 
 # from django.utils.module_loading import import_string

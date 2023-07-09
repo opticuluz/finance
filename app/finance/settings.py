@@ -13,8 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 import sys
 from pathlib import Path
-from celery.schedules import crontab
-import finance.tasks
+# from celery.schedules import crontab
+# import finance.tasks
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -152,7 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'
 
-FIXER_ACCESS_KEY = 'c6206ca966ddba7d45a06f7edccd8700'
+# FIXER_ACCESS_KEY = 'c6206ca966ddba7d45a06f7edccd8700'
 
 EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
 
@@ -176,10 +176,10 @@ CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 # CELERY_RESULT_SERIALIZER = 'json'
 # CELERY_TIMEZONE = 'Asia/Tbilisi'
 
-CELERYBEAT_SCHEDULE = {
-    'update_rates': {
-        'task': 'finance.tasks.update_rates',
-        'schedule': crontab(minute='*/2'),
-        'kwargs': {}  # For custom arguments
-    }
-}
+# CELERYBEAT_SCHEDULE = {
+#     'update_rates': {
+#         'task': 'finance.tasks.update_rates',
+#         'schedule': crontab(minute='*/2'),
+#         'kwargs': {}  # For custom arguments
+#     }
+# }
