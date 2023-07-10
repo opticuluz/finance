@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from constance import config
 
 
 class Report(models.Model):
@@ -46,4 +47,4 @@ class Report(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Report for {self.user.email}"
+        return f"Report for {self.user.email} in {config.BASE_CURRENCY}"
