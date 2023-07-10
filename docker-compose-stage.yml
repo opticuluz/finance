@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        - DEV=false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+    command: >
+      sh -c "python manage.py wait_for_db &&
+             python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=finance_db
+      - DB_USER=postgres_user
+      - DB_PASS=postgres_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15.3-alpine
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=finance_db
+      - POSTGRES_USER=postgres_user
+      - POSTGRES_PASSWORD=postgres_password
+
+  redis:
+    image: redis:7.0-alpine
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+
+  celery-beat: &celery
+    build:
+      context: .
+    environment:
+      - DJANGO_SETTINGS_MODULE=finance.settings
+      - DB_HOST=db
+      - DB_NAME=finance_db
+      - DB_USER=postgres_user
+      - DB_PASS=postgres_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - ./app:/app
+    depends_on:
+      - redis
+      - db
+      - app
+    command: >
+      sh -c "celery -A finance purge -f &&
+             celery -A finance beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    
+  celery-worker:
+    <<: *celery
+    command: celery -A finance worker -l info -E
+
+  celery-flower:
+    <<: *celery
+    ports:
+      - 5555:5555
+    command: celery -A finance flower
+
+
+volumes:
+  db-data:
+  redis-data:
