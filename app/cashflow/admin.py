@@ -51,7 +51,7 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             ].queryset.filter(user=request.user)
         form.base_fields['category'].queryset = form.base_fields[
             'category'
-            ].queryset.filter(user=request.user)
+            ].queryset.filter(user=request.user, active=True)
         return form
 
     def save_model(self, request, obj, form, change):
