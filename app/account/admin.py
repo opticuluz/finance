@@ -247,7 +247,7 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             ).aggregate(
             total_balance=Sum(
                 Case(
-                    When(credit_card_limit__gt=0,
+                    When(credit_card_limit=0,
                          then='balance_in_base_currency'
                          ),
                     default=Value(0),
