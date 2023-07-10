@@ -57,7 +57,7 @@ class Cashflow(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return str(self.payment_type)
+        return str(self.payment_type).capitalize()
 
     def clean(self):
         if self.charged_account == self.targed_account:

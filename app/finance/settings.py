@@ -172,15 +172,3 @@ CONSTANCE_CONFIG = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = 'Asia/Tbilisi'
-
-# CELERYBEAT_SCHEDULE = {
-#     'update_rates': {
-#         'task': 'finance.tasks.update_rates',
-#         'schedule': crontab(minute='*/2'),
-#         'kwargs': {}  # For custom arguments
-#     }
-# }
