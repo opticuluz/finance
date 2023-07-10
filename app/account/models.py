@@ -40,6 +40,34 @@ class Account(models.Model):
         blank=True,
         null=True
         )
+    credit_card_limit = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
+    credit_card_limit_in_base_currency = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
+    available_balance = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
+    available_balance_in_base_currency = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     note = models.CharField(max_length=255, blank=True, null=True)
     include_balance_in_current_month = models.BooleanField(default=True)
     user = models.ForeignKey(
@@ -50,4 +78,8 @@ class Account(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.account_name} ({self.currency.title})"
+        if self.currency.title == 'USD':
+            return f'{self.account_name}: ${self.balance}'
+        else:
+            sign = self.currency.symbol
+            return f'{self.account_name}: {self.balance} {sign}'
