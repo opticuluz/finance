@@ -15,6 +15,13 @@ class Report(models.Model):
         blank=True,
         null=True
         )
+    total_available_balance_in_base_currency = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     income_in_current_month = models.DecimalField(
         default=0.0,
         max_digits=20,

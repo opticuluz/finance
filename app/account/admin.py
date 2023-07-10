@@ -8,7 +8,6 @@ from django.db.models import Sum, Q
 from report.models import Report
 from constance import config
 from django.utils.translation import gettext_lazy as _
-# import requests
 
 
 class CashflowInline(admin.TabularInline):
@@ -98,7 +97,7 @@ def base_currency_rate():
 
 
 class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
-    ordering = ['-created_at']
+    ordering = ['account_name', 'currency']
     list_display = [
         'account_name',
         'balance',
@@ -111,6 +110,9 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     readonly_fields = [
         'balance',
         'balance_in_base_currency',
+        'credit_card_limit_in_base_currency',
+        'available_balance',
+        'available_balance_in_base_currency',
         'user',
         'created_at',
         'updated_at'
@@ -123,6 +125,24 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         else:
             rate = Decimal(base_currency_rate()) / obj.currency.rate
             obj.balance_in_base_currency = Decimal(obj.balance) * rate
+
+        if obj.credit_card_limit != 0:
+            obj.available_balance = obj.balance + obj.credit_card_limit
+            if obj.currency.title == config.BASE_CURRENCY:
+                obj.credit_card_limit_in_base_currency = obj.credit_card_limit
+            else:
+                rate = Decimal(base_currency_rate()) / obj.currency.rate
+                obj.credit_card_limit_in_base_currency = (
+                    Decimal(obj.credit_card_limit) * rate
+                    )
+                obj.available_balance_in_base_currency = (
+                    Decimal(obj.available_balance) * rate
+                    )
+        else:
+            obj.available_balance = 0
+            obj.credit_card_limit_in_base_currency = 0
+            obj.available_balance_in_base_currency = 0
+
         super().save_model(request, obj, form, change)
 
     actions = ['recalculate_balance_in_base_currency', 'create_report']
@@ -219,6 +239,13 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             total_balance=Sum('balance_in_base_currency')
             )['total_balance'] or 0.0
 
+        total_available_balance = queryset.filter(
+            user=request.user
+            ).aggregate(
+            total_balance=Sum('balance_in_base_currency') + Sum(
+                'available_balance_in_base_currency')
+            )['total_balance'] or 0.0
+
         messages.success(request, "Report created successfully.")
 
         report = Report.objects.filter(
@@ -229,6 +256,9 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
         if report:
             report.total_balance_in_base_currency = total_balance
+            report.total_available_balance_in_base_currency = (
+                total_available_balance
+                )
             report.income_in_current_month = income
             report.expenses_in_current_month = expenses
             report.income_in_current_year = income_year
@@ -238,6 +268,9 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             report = Report.objects.create(
                 user=request.user,
                 total_balance_in_base_currency=total_balance,
+                total_available_balance_in_base_currency=(
+                    total_available_balance
+                    ),
                 income_in_current_month=income,
                 expenses_in_current_month=expenses,
                 income_in_current_year=income_year,
