@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 import sys
 from pathlib import Path
+# from celery.schedules import crontab
+# import finance.tasks
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,8 +41,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'constance',
     'core',
     'account',
+    'category',
+    'cashflow',
+    'djmoney',
+    'djmoney.contrib.exchange',
+    'report',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -77,15 +86,7 @@ WSGI_APPLICATION = 'finance.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-if sys.argv[1] == 'test':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-else:
-    DATABASES = {
+DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'HOST': os.environ.get('DB_HOST'),
@@ -94,6 +95,18 @@ else:
             'PASSWORD': os.environ.get('DB_PASS'),
         }
     }
+
+redis = os.environ.get('REDIS_HOST')
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://redis:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         },
+#     }
+# }
 
 
 # Password validation
@@ -138,3 +151,36 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'
+
+# FIXER_ACCESS_KEY = 'c6206ca966ddba7d45a06f7edccd8700'
+
+EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
+
+CONSTANCE_BACKEND = 'constance.backends.redisd.RedisBackend'
+
+CONSTANCE_REDIS_CONNECTION = {
+    'host': redis,
+    'port': 6379,
+    'db': 0,
+}
+
+CONSTANCE_CONFIG = {
+    'FIXER_URL': ('http://data.fixer.io/api/latest', 'Fixel url'),
+    'FIXER_ACCESS_KEY': ('', 'Fixer Access Key'),
+    'BASE_CURRENCY': ('USD', 'Base Currency'),
+}
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'Asia/Tbilisi'
+
+# CELERYBEAT_SCHEDULE = {
+#     'update_rates': {
+#         'task': 'finance.tasks.update_rates',
+#         'schedule': crontab(minute='*/2'),
+#         'kwargs': {}  # For custom arguments
+#     }
+# }

@@ -28,4 +28,5 @@ RUN python -m venv /py && \
 
 ENV PATH="/py/bin:$PATH"
 
+RUN chown django-user /app
 USER django-user
