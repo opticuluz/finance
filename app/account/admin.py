@@ -4,7 +4,8 @@ from core.mixins import UserRestrictedAdminMixin
 from cashflow.models import Cashflow
 from decimal import Decimal
 from datetime import datetime
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Case, When, Value
+from django.db import models
 from report.models import Report
 from constance import config
 from django.utils.translation import gettext_lazy as _
@@ -126,8 +127,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             rate = Decimal(base_currency_rate()) / obj.currency.rate
             obj.balance_in_base_currency = Decimal(obj.balance) * rate
 
-        if obj.credit_card_limit != 0:
-            obj.available_balance = obj.balance + obj.credit_card_limit
+        if obj.credit_card_limit != Decimal('0.0'):
+            obj.available_balance = (
+                Decimal(obj.balance) + obj.credit_card_limit
+                )
             if obj.currency.title == config.BASE_CURRENCY:
                 obj.credit_card_limit_in_base_currency = obj.credit_card_limit
             else:
@@ -242,7 +245,15 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         total_available_balance = queryset.filter(
             user=request.user
             ).aggregate(
-            total_balance=Sum('balance_in_base_currency') + Sum(
+            total_balance=Sum(
+                Case(
+                    When(credit_card_limit__gt=0,
+                         then='balance_in_base_currency'
+                         ),
+                    default=Value(0),
+                    output_field=models.DecimalField(),
+                )
+            ) + Sum(
                 'available_balance_in_base_currency')
             )['total_balance'] or 0.0
 
