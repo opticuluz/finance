@@ -18,7 +18,7 @@ class Currency(models.Model):
         )
     rate_in_base = models.DecimalField(
         max_digits=20,
-        decimal_places=6,
+        decimal_places=2,
         blank=True,
         null=True
         )

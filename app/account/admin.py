@@ -181,6 +181,38 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         ).values('total_expenses').aggregate(
             Sum('total_expenses')
             )['total_expenses__sum'] or 0.0
+
+        current_year_start = datetime.now().replace(
+            month=1,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+            )
+        income_year = queryset.annotate(
+            total_income=Sum(
+                'charged_cashflows__amount_in_base_currency',
+                filter=Q(
+                    charged_cashflows__payment_type='income',
+                    charged_cashflows__date__gte=current_year_start
+                    )
+                )
+        ).values('total_income').aggregate(
+            Sum('total_income')
+            )['total_income__sum'] or 0.0
+        expenses_year = queryset.annotate(
+            total_expenses=Sum(
+                'charged_cashflows__amount_in_base_currency',
+                filter=Q(
+                    charged_cashflows__payment_type='expenses',
+                    charged_cashflows__date__gte=current_year_start
+                    )
+                )
+        ).values('total_expenses').aggregate(
+            Sum('total_expenses')
+            )['total_expenses__sum'] or 0.0
+
         total_balance = queryset.filter(
             user=request.user
             ).aggregate(
@@ -199,13 +231,17 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             report.total_balance_in_base_currency = total_balance
             report.income_in_current_month = income
             report.expenses_in_current_month = expenses
+            report.income_in_current_year = income_year
+            report.expenses_in_current_year = expenses_year
             report.save()
         else:
             report = Report.objects.create(
                 user=request.user,
                 total_balance_in_base_currency=total_balance,
                 income_in_current_month=income,
-                expenses_in_current_month=expenses
+                expenses_in_current_month=expenses,
+                income_in_current_year=income_year,
+                expenses_in_current_year=expenses_year
             )
             report.save()
 
@@ -217,9 +253,10 @@ admin.site.register(Account, AccountAdmin)
 
 class CurrencyAdmin(admin.ModelAdmin):
     ordering = ['title']
-    list_display = ['title', 'symbol', 'rate', 'rate_in_base', 'updated_at']
+    list_display = ['title', 'symbol', 'rate_in_base', 'updated_at']
     search_fields = ['title']
-    readonly_fields = ['created_at', 'updated_at']
+    exclude = ('rate',)
+    readonly_fields = ['rate_in_base', 'created_at', 'updated_at']
 
 
 admin.site.register(Currency, CurrencyAdmin)

@@ -5,8 +5,8 @@ from core.mixins import UserRestrictedAdminMixin
 
 class CategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
-    ordering = ['-created_at']
-    list_display = ['created_at', 'category_name', 'active']
+    ordering = ['category_name']
+    list_display = ['category_name', 'active']
     list_filter = ['active', 'user']
     search_fields = ['category_name']
     readonly_fields = ['user', 'created_at', 'updated_at']

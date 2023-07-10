@@ -30,7 +30,7 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'created_at',
         'date',
         'payment_type',
-        'charged_account',
+        # 'charged_account',
         'user'
         ]
     search_fields = ['amount']

@@ -20,11 +20,15 @@ def update_all_rates():
         data = response.json()
         rates = data.get('rates')
         if rates:
+            rate_for_base = rates.pop(config.BASE_CURRENCY)
+            currency = Currency.objects.get(title=config.BASE_CURRENCY)
+            currency.rate = rate_for_base
+            currency.rate_in_base = 1
+            currency.save()
             for currency_title, rate_value in rates.items():
                 try:
                     currency = Currency.objects.get(title=currency_title)
                     currency.rate = rate_value
-                    currency.save()
                     currency.rate_in_base = (
                         Decimal(currency.rate) / Decimal(base_currency_rate())
                         )

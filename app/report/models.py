@@ -28,6 +28,20 @@ class Report(models.Model):
         blank=True,
         null=True
         )
+    income_in_current_year = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
+    expenses_in_current_year = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -18,6 +18,8 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'user',
         'income_in_current_month',
         'expenses_in_current_month',
+        'income_in_current_year',
+        'expenses_in_current_year',
         'total_balance_in_base_currency',
         'created_at',
         'updated_at'
