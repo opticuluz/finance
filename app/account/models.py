@@ -69,7 +69,7 @@ class Account(models.Model):
         null=True
         )
     note = models.CharField(max_length=255, blank=True, null=True)
-    include_balance_in_current_month = models.BooleanField(default=True)
+    include_account_in_report = models.BooleanField(default=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE

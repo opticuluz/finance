@@ -104,9 +104,9 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'balance',
         'currency',
         'balance_in_base_currency',
-        'include_balance_in_current_month'
+        'include_account_in_report'
         ]
-    list_filter = ['account_name', 'include_balance_in_current_month', 'user']
+    list_filter = ['account_name', 'include_account_in_report', 'user']
     search_fields = ['account_name', 'user']
     readonly_fields = [
         'balance',
