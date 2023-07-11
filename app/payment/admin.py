@@ -8,6 +8,7 @@ from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
 from account.admin import base_currency_rate
+from report.tasks import create_report
 
 
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -76,7 +77,7 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             messages.error(request, 'Date cannot be in the future.')
         else:
             obj.user = request.user
-            super().save_model(request, obj, form, change)
+            # super().save_model(request, obj, form, change)
 
         if obj.charged_account.currency.title == config.BASE_CURRENCY:
             obj.amount_in_base_currency = obj.amount
@@ -122,11 +123,8 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 charged_account.balance_in_base_currency = (
                     charged_account.balance * rate
                     )
-            # else:
-            #     messages.warning(
-            #         request,
-            #         f"Rate not found for {charged_account.currency.title}"
-            #         )
+            else:
+                charged_account.balance_in_base_currency = None
         charged_account.save()
 
         if instance.payment_type == 'transfer':
@@ -163,15 +161,17 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                     targed_account.balance_in_base_currency = (
                         targed_account.balance * rate
                         )
-                # else:
-                #     messages.warning(
-                #         request,
-                #         f"Rate not found for {targed_account.currency.title}"
-                #         )
+                else:
+                    targed_account.balance_in_base_currency = None
             targed_account.save()
 
     post_save.connect(update_account_balance, sender=Payment)
     post_delete.connect(update_account_balance, sender=Payment)
+
+
+@receiver([post_save, post_delete], sender=Payment)
+def create_report_on_payment_item_save(sender, instance, **kwargs):
+    create_report.delay()
 
 
 admin.site.register(Payment, PaymentAdmin)
