@@ -19,7 +19,8 @@ class PaymentInline(admin.TabularInline):
         'amount_in_base_currency',
         'category',
         'date',
-        'note'
+        'note',
+        'include_payment_in_report'
         ]
     can_delete = False
     extra = 0
@@ -50,7 +51,8 @@ class PaymentTargedInline(admin.TabularInline):
         'amount_in_base_currency',
         'category',
         'date',
-        'note'
+        'note',
+        'include_payment_in_report'
         ]
     can_delete = False
     extra = 0
