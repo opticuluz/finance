@@ -1,9 +1,11 @@
 from finance.celery import app
 from .models import Account, Currency
 import requests
+import time
 from constance import config
 from account.admin import base_currency_rate
 from decimal import Decimal
+from report.tasks import create_report
 
 
 @app.task
@@ -39,6 +41,14 @@ def update_all_rates():
             pass
     else:
         return None
+
+    time.sleep(5)
+
+    recalculate_balance_in_base_currency()
+
+    time.sleep(5)
+
+    create_report()
 
 
 @app.task
