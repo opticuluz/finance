@@ -40,12 +40,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'constance',
-    'core',
+    'user',
     'account',
     'category',
-    'cashflow',
-    'djmoney',
-    'djmoney.contrib.exchange',
+    'payment',
     'report',
     'django_celery_beat',
 ]
@@ -138,7 +136,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'core.User'
+AUTH_USER_MODEL = 'user.User'
 
 EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
 
@@ -158,3 +156,4 @@ CONSTANCE_CONFIG = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_TIMEZONE = "Asia/Tbilisi"

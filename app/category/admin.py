@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Category
-from core.mixins import UserRestrictedAdminMixin
+from user.mixins import UserRestrictedAdminMixin
 
 
 class CategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):

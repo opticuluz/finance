@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Report
-from core.mixins import UserRestrictedAdminMixin
+from user.mixins import UserRestrictedAdminMixin
 
 
 class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):

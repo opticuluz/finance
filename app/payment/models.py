@@ -12,7 +12,7 @@ PAYMENT_TYPE_CHOICES = [
     ]
 
 
-class Cashflow(models.Model):
+class Payment(models.Model):
 
     class Meta:
         verbose_name = 'Payment'
@@ -26,14 +26,14 @@ class Cashflow(models.Model):
     charged_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
-        related_name='charged_cashflows'
+        related_name='charged_payments'
         )
     targed_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='targed_cashflows'
+        related_name='targed_payments'
         )
     amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
     amount_in_base_currency = models.DecimalField(
@@ -49,6 +49,7 @@ class Cashflow(models.Model):
         )
     date = models.DateField()
     note = models.CharField(max_length=255, blank=True, null=True)
+    include_payment_in_report = models.BooleanField(default=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
@@ -57,7 +58,7 @@ class Cashflow(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return str(self.payment_type)
+        return str(self.payment_type).capitalize()
 
     def clean(self):
         if self.charged_account == self.targed_account:
