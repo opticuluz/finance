@@ -44,8 +44,6 @@ INSTALLED_APPS = [
     'account',
     'category',
     'payment',
-    # 'djmoney',
-    # 'djmoney.contrib.exchange',
     'report',
     'django_celery_beat',
 ]
@@ -158,3 +156,4 @@ CONSTANCE_CONFIG = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_TIMEZONE = "Asia/Tbilisi"
