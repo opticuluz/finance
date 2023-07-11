@@ -49,6 +49,7 @@ class Payment(models.Model):
         )
     date = models.DateField()
     note = models.CharField(max_length=255, blank=True, null=True)
+    include_payment_in_report = models.BooleanField(default=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE

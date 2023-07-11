@@ -57,6 +57,7 @@ def create_report():
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
                     charged_payments__payment_type='income',
+                    charged_payments__include_payment_in_report=True,
                     charged_payments__date__gte=current_month_start
                     )
                 )
@@ -68,6 +69,7 @@ def create_report():
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
                     charged_payments__payment_type='expenses',
+                    charged_payments__include_payment_in_report=True,
                     charged_payments__date__gte=current_month_start
                     )
                 )
@@ -80,6 +82,7 @@ def create_report():
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
                     charged_payments__payment_type='income',
+                    charged_payments__include_payment_in_report=True,
                     charged_payments__date__gte=current_year_start
                     )
                 )
@@ -91,6 +94,7 @@ def create_report():
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
                     charged_payments__payment_type='expenses',
+                    charged_payments__include_payment_in_report=True,
                     charged_payments__date__gte=current_year_start
                     )
                 )
