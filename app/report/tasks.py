@@ -16,7 +16,7 @@ def create_report():
             include_account_in_report=True,
             user=user_id
             )
-        
+
         user = User.objects.get(id=user_id)
 
         current_month_start = datetime.now().replace(
@@ -26,7 +26,7 @@ def create_report():
             second=0,
             microsecond=0
             )
-        
+
         current_year_start = datetime.now().replace(
             month=1,
             day=1,
@@ -50,7 +50,7 @@ def create_report():
                 report.expenses_in_current_month = 0
                 report.income_in_current_year = 0
                 report.expenses_in_current_year = 0
-                report.save() 
+                report.save()
 
         income = queryset.annotate(
             total_income=Sum(
@@ -74,7 +74,6 @@ def create_report():
         ).values('total_expenses').aggregate(
             Sum('total_expenses')
             )['total_expenses__sum'] or 0.0
-
 
         income_year = queryset.annotate(
             total_income=Sum(
@@ -106,9 +105,10 @@ def create_report():
         total_available_balance = queryset.aggregate(
             total_balance=Sum(
                 Case(
-                    When(credit_card_limit=0,
-                            then='balance_in_base_currency'
-                            ),
+                    When(
+                        credit_card_limit=0,
+                        then='balance_in_base_currency'
+                        ),
                     default=Value(0),
                     output_field=models.DecimalField(),
                 )

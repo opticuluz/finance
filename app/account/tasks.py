@@ -1,5 +1,5 @@
 from finance.celery import app
-from .models import Currency
+from .models import Account, Currency
 import requests
 from constance import config
 from account.admin import base_currency_rate
@@ -39,3 +39,20 @@ def update_all_rates():
             pass
     else:
         return None
+
+
+@app.task
+def recalculate_balance_in_base_currency():
+
+    queryset = Account.objects.all()
+
+    for account in queryset:
+        if account.currency.title == config.BASE_CURRENCY:
+            account.balance_in_base_currency = account.balance
+        else:
+            rate = Decimal(base_currency_rate()) / account.currency.rate
+            if rate:
+                account.balance_in_base_currency = account.balance * rate
+            else:
+                account.balance_in_base_currency = None
+        account.save()

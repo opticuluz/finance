@@ -144,32 +144,6 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-    actions = ['recalculate_balance_in_base_currency', 'create_report']
-
-    def recalculate_balance_in_base_currency(self, request, queryset):
-        for account in queryset:
-            if account.currency.title == config.BASE_CURRENCY:
-                account.balance_in_base_currency = account.balance
-            else:
-                rate = Decimal(base_currency_rate()) / account.currency.rate
-                if rate:
-                    account.balance_in_base_currency = account.balance * rate
-                else:
-                    messages.warning(
-                        request,
-                        f"Rate not found for {account.currency.title}"
-                        )
-                    continue
-            account.save()
-        messages.success(
-            request,
-            "Balance in base currency recalculated for selected accounts."
-            )
-
-    recalculate_balance_in_base_currency.short_description = (
-        "Recalculate balance in base currency"
-        )
-
 
 admin.site.register(Account, AccountAdmin)
 
