@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from .models import Cashflow
+from .models import Payment
 from core.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
@@ -10,7 +10,7 @@ from constance import config
 from account.admin import base_currency_rate
 
 
-class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     class Media:
         js = ['js/change_form.js']
@@ -95,15 +95,15 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             obj.amount_in_base_currency = rounded_amount
         super().save_model(request, obj, form, change)
 
-    @receiver([post_save, post_delete], sender=Cashflow)
+    @receiver([post_save, post_delete], sender=Payment)
     def update_account_balance(sender, instance, **kwargs):
         charged_account = instance.charged_account
 
-        charged_balance = charged_account.charged_cashflows.filter(
+        charged_balance = charged_account.charged_payments.filter(
             payment_type='income'
             ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
-        charged_balance -= charged_account.charged_cashflows.filter(
+        charged_balance -= charged_account.charged_payments.filter(
             payment_type__in=['expenses', 'transfer']
             ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
@@ -132,17 +132,17 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if instance.payment_type == 'transfer':
             targed_account = instance.targed_account
 
-            targed_balance1 = targed_account.targed_cashflows.filter(
+            targed_balance1 = targed_account.targed_payments.filter(
                 payment_type='transfer'
                 ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
-            targed_balance2 = targed_account.charged_cashflows.filter(
+            targed_balance2 = targed_account.charged_payments.filter(
                 payment_type='income'
                 ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
             targed_balance = targed_balance1 + targed_balance2
 
-            targed_balance -= targed_account.charged_cashflows.filter(
+            targed_balance -= targed_account.charged_payments.filter(
                 payment_type='expenses'
                 ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
@@ -170,8 +170,8 @@ class CashflowAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 #         )
             targed_account.save()
 
-    post_save.connect(update_account_balance, sender=Cashflow)
-    post_delete.connect(update_account_balance, sender=Cashflow)
+    post_save.connect(update_account_balance, sender=Payment)
+    post_delete.connect(update_account_balance, sender=Payment)
 
 
-admin.site.register(Cashflow, CashflowAdmin)
+admin.site.register(Payment, PaymentAdmin)

@@ -43,9 +43,9 @@ INSTALLED_APPS = [
     'core',
     'account',
     'category',
-    'cashflow',
-    'djmoney',
-    'djmoney.contrib.exchange',
+    'payment',
+    # 'djmoney',
+    # 'djmoney.contrib.exchange',
     'report',
     'django_celery_beat',
 ]

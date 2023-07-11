@@ -12,7 +12,7 @@ PAYMENT_TYPE_CHOICES = [
     ]
 
 
-class Cashflow(models.Model):
+class Payment(models.Model):
 
     class Meta:
         verbose_name = 'Payment'
@@ -26,14 +26,14 @@ class Cashflow(models.Model):
     charged_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
-        related_name='charged_cashflows'
+        related_name='charged_payments'
         )
     targed_account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='targed_cashflows'
+        related_name='targed_payments'
         )
     amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
     amount_in_base_currency = models.DecimalField(

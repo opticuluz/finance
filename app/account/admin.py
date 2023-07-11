@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from .models import Account, Currency
 from core.mixins import UserRestrictedAdminMixin
-from cashflow.models import Cashflow
+from payment.models import Payment
 from decimal import Decimal
 from datetime import datetime
 from django.db.models import Sum, Q, Case, When, Value
@@ -11,8 +11,8 @@ from constance import config
 from django.utils.translation import gettext_lazy as _
 
 
-class CashflowInline(admin.TabularInline):
-    model = Cashflow
+class PaymentInline(admin.TabularInline):
+    model = Payment
     fk_name = 'charged_account'
     readonly_fields = [
         'created_at',
@@ -42,8 +42,8 @@ class CashflowInline(admin.TabularInline):
         return queryset
 
 
-class CashflowTargedInline(admin.TabularInline):
-    model = Cashflow
+class PaymentTargedInline(admin.TabularInline):
+    model = Payment
     fk_name = 'targed_account'
     readonly_fields = [
         'created_at',
@@ -118,7 +118,7 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'created_at',
         'updated_at'
         ]
-    inlines = [CashflowInline, CashflowTargedInline]
+    inlines = [PaymentInline, PaymentTargedInline]
 
     def save_model(self, request, obj, form, change):
         if obj.currency.title == config.BASE_CURRENCY:
@@ -184,10 +184,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             )
         income = queryset.annotate(
             total_income=Sum(
-                'charged_cashflows__amount_in_base_currency',
+                'charged_payments__amount_in_base_currency',
                 filter=Q(
-                    charged_cashflows__payment_type='income',
-                    charged_cashflows__date__gte=current_month_start
+                    charged_payments__payment_type='income',
+                    charged_payments__date__gte=current_month_start
                     )
                 )
         ).values('total_income').aggregate(
@@ -195,10 +195,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             )['total_income__sum'] or 0.0
         expenses = queryset.annotate(
             total_expenses=Sum(
-                'charged_cashflows__amount_in_base_currency',
+                'charged_payments__amount_in_base_currency',
                 filter=Q(
-                    charged_cashflows__payment_type='expenses',
-                    charged_cashflows__date__gte=current_month_start
+                    charged_payments__payment_type='expenses',
+                    charged_payments__date__gte=current_month_start
                     )
                 )
         ).values('total_expenses').aggregate(
@@ -215,10 +215,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             )
         income_year = queryset.annotate(
             total_income=Sum(
-                'charged_cashflows__amount_in_base_currency',
+                'charged_payments__amount_in_base_currency',
                 filter=Q(
-                    charged_cashflows__payment_type='income',
-                    charged_cashflows__date__gte=current_year_start
+                    charged_payments__payment_type='income',
+                    charged_payments__date__gte=current_year_start
                     )
                 )
         ).values('total_income').aggregate(
@@ -226,10 +226,10 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             )['total_income__sum'] or 0.0
         expenses_year = queryset.annotate(
             total_expenses=Sum(
-                'charged_cashflows__amount_in_base_currency',
+                'charged_payments__amount_in_base_currency',
                 filter=Q(
-                    charged_cashflows__payment_type='expenses',
-                    charged_cashflows__date__gte=current_year_start
+                    charged_payments__payment_type='expenses',
+                    charged_payments__date__gte=current_year_start
                     )
                 )
         ).values('total_expenses').aggregate(
