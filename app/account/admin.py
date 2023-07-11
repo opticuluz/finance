@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from .models import Account, Currency
-from core.mixins import UserRestrictedAdminMixin
+from user.mixins import UserRestrictedAdminMixin
 from payment.models import Payment
 from decimal import Decimal
 from datetime import datetime
