@@ -122,8 +122,12 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         if obj.currency.title == config.BASE_CURRENCY:
             obj.balance_in_base_currency = obj.balance
         else:
-            rate = Decimal(base_currency_rate()) / obj.currency.rate
-            obj.balance_in_base_currency = Decimal(obj.balance) * rate
+            rate = obj.currency.rate
+            if rate is None:
+                obj.balance_in_base_currency = Decimal('0.0')
+            else:
+                rate = Decimal(base_currency_rate()) / rate
+                obj.balance_in_base_currency = Decimal(obj.balance) * rate
 
         if obj.credit_card_limit != Decimal('0.0'):
             obj.available_balance = (
@@ -132,13 +136,18 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             if obj.currency.title == config.BASE_CURRENCY:
                 obj.credit_card_limit_in_base_currency = obj.credit_card_limit
             else:
-                rate = Decimal(base_currency_rate()) / obj.currency.rate
-                obj.credit_card_limit_in_base_currency = (
-                    Decimal(obj.credit_card_limit) * rate
-                    )
-                obj.available_balance_in_base_currency = (
-                    Decimal(obj.available_balance) * rate
-                    )
+                rate = obj.currency.rate
+                if rate is None:
+                    obj.credit_card_limit_in_base_currency = Decimal('0.0')
+                    obj.available_balance_in_base_currency = Decimal('0.0')
+                else:
+                    rate = Decimal(base_currency_rate()) / rate
+                    obj.credit_card_limit_in_base_currency = (
+                        Decimal(obj.credit_card_limit) * rate
+                        )
+                    obj.available_balance_in_base_currency = (
+                        Decimal(obj.available_balance) * rate
+                        )
         else:
             obj.available_balance = 0
             obj.credit_card_limit_in_base_currency = 0
