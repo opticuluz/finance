@@ -20,7 +20,9 @@ class UserChargedAccountFilter(SimpleListFilter):
     def lookups(self, request, model_admin):
         # Return the choices for the filter
         if not request.user.is_superuser:
-            charged_accounts = Account.objects.filter(user=request.user).order_by('account_name')
+            charged_accounts = Account.objects.filter(
+                user=request.user
+                ).order_by('account_name')
             return [(account.id, str(account)) for account in charged_accounts]
         else:
             charged_accounts = Account.objects.all().order_by('account_name')
@@ -32,7 +34,7 @@ class UserChargedAccountFilter(SimpleListFilter):
         if charged_account_id:
             return queryset.filter(charged_account_id=charged_account_id)
         return queryset
-    
+
     def label_from_instance(self, obj):
         if obj.currency.title == 'USD':
             return f'{obj.account_name}: ${obj.balance}'
@@ -86,18 +88,6 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 'category'
                 ].queryset.filter(user=request.user, active=True)
         return form
-    
-    # def formfield_for_foreignkey(self, db_field, request, **kwargs):
-    #     if db_field.name == 'charged_account':
-    #         kwargs['queryset'] = Account.objects.filter(user=request.user)
-    #     return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
-    # def get_queryset(self, request):
-    #     qs = super().get_queryset(request)
-    #     if not request.user.is_superuser:
-    #         qs = qs.filter(charged_account__user=request.user)
-    #     return qs
 
     def save_model(self, request, obj, form, change):
         if obj.payment_type == 'transfer' and not obj.targed_account:
@@ -139,9 +129,6 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 )
             obj.amount_in_base_currency = rounded_amount
         super().save_model(request, obj, form, change)
-
-
-
 
 
 @receiver([post_save, post_delete], sender=Payment)
