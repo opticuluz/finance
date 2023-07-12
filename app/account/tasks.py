@@ -1,11 +1,21 @@
 from finance.celery import app
+import celery
 from .models import Account, Currency
 import requests
-import time
 from constance import config
 from account.admin import base_currency_rate
 from decimal import Decimal
 from report.tasks import create_report
+
+
+@app.task
+def update_all_data():
+    sync = celery.chain(
+        update_all_rates.si(),
+        recalculate_balance_in_base_currency.si(),
+        create_report.si()
+    )
+    sync.delay()
 
 
 @app.task
@@ -42,14 +52,6 @@ def update_all_rates():
     else:
         return None
 
-    time.sleep(5)
-
-    recalculate_balance_in_base_currency()
-
-    time.sleep(5)
-
-    create_report()
-
 
 @app.task
 def recalculate_balance_in_base_currency():
@@ -60,9 +62,42 @@ def recalculate_balance_in_base_currency():
         if account.currency.title == config.BASE_CURRENCY:
             account.balance_in_base_currency = account.balance
         else:
-            rate = Decimal(base_currency_rate()) / account.currency.rate
-            if rate:
-                account.balance_in_base_currency = account.balance * rate
+            rate = account.currency.rate
+            if rate is None:
+                account.balance_in_base_currency = Decimal('0.0')
             else:
-                account.balance_in_base_currency = None
+                rate = Decimal(base_currency_rate()) / rate
+                account.balance_in_base_currency = Decimal(
+                    account.balance
+                    ) * rate
+
+        if account.credit_card_limit != Decimal('0.0'):
+            account.available_balance = (
+                Decimal(account.balance) + account.credit_card_limit
+                )
+            if account.currency.title == config.BASE_CURRENCY:
+                account.credit_card_limit_in_base_currency = (
+                    account.credit_card_limit
+                )
+                account.available_balance_in_base_currency = (
+                    account.available_balance
+                )
+            else:
+                rate = account.currency.rate
+                if rate is None:
+                    account.credit_card_limit_in_base_currency = Decimal('0.0')
+                    account.available_balance_in_base_currency = Decimal('0.0')
+                else:
+                    rate = Decimal(base_currency_rate()) / rate
+                    account.credit_card_limit_in_base_currency = (
+                        Decimal(account.credit_card_limit) * rate
+                        )
+                    account.available_balance_in_base_currency = (
+                        Decimal(account.available_balance) * rate
+                        )
+        else:
+            account.available_balance = 0
+            account.credit_card_limit_in_base_currency = 0
+            account.available_balance_in_base_currency = 0
+
         account.save()

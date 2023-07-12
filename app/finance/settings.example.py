@@ -125,6 +125,16 @@ USE_I18N = True
 
 USE_TZ = True
 
+USE_L10N = False
+
+FIRST_DAY_OF_WEEK = 1
+
+DATETIME_FORMAT = 'd F Y H:i:s'
+
+DATE_FORMAT = 'd F Y'
+
+DATE_INPUT_FORMATS = ['%d.%m.%Y']
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
