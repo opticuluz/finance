@@ -20,7 +20,7 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+    container_name: finance_app
     depends_on:
       - db
       - redis
@@ -33,13 +33,13 @@ services:
       - POSTGRES_DB=finance_db
       - POSTGRES_USER=postgres_user
       - POSTGRES_PASSWORD=postgres_password
+    container_name: finance_db
 
   redis:
     image: redis:7.0-alpine
     volumes:
       - redis-data:/data
-    ports:
-      - "6379:6379"
+    container_name: finance_redis
 
   celery-beat: &celery
     build:
@@ -51,7 +51,6 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
     volumes:
       - ./app:/app
     depends_on:
@@ -61,16 +60,19 @@ services:
     command: >
       sh -c "celery -A finance purge -f &&
              celery -A finance beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    container_name: finance_celery_beat
     
   celery-worker:
     <<: *celery
     command: celery -A finance worker -l info -E
+    container_name: finance_celery_worker
 
   celery-flower:
     <<: *celery
     ports:
       - 5555:5555
     command: celery -A finance flower
+    container_name: finance_celery_flower
 
 
 volumes:
