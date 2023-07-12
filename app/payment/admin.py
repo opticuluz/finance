@@ -8,7 +8,6 @@ from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
 from account.admin import base_currency_rate
-from report.tasks import create_report
 from account.models import Account
 from django.contrib.admin import SimpleListFilter
 
@@ -111,7 +110,6 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             messages.error(request, 'Date cannot be in the future.')
         else:
             obj.user = request.user
-            # super().save_model(request, obj, form, change)
 
         if obj.charged_account.currency.title == config.BASE_CURRENCY:
             obj.amount_in_base_currency = obj.amount
@@ -144,22 +142,18 @@ def update_account_balance(sender, instance, **kwargs):
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
     charged_account.balance = charged_balance
-    charged_account.save()
 
     if charged_account.currency.title == config.BASE_CURRENCY:
         charged_account.balance_in_base_currency = charged_account.balance
     else:
-        rate = (
-            Decimal(base_currency_rate())
-            /
-            charged_account.currency.rate
-            )
-        if rate:
-            charged_account.balance_in_base_currency = (
-                charged_account.balance * rate
-                )
+        rate = charged_account.currency.rate
+        if rate is None:
+            charged_account.balance_in_base_currency = Decimal('0.0')
         else:
-            charged_account.balance_in_base_currency = None
+            rate = Decimal(base_currency_rate()) / rate
+            charged_account.balance_in_base_currency = Decimal(
+                charged_account.balance
+                ) * rate
     charged_account.save()
 
     if instance.payment_type == 'transfer':
@@ -180,34 +174,25 @@ def update_account_balance(sender, instance, **kwargs):
             ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
         targed_account.balance = targed_balance
-        targed_account.save()
 
         if targed_account.currency.title == config.BASE_CURRENCY:
             targed_account.balance_in_base_currency = (
                 targed_account.balance
                 )
         else:
-            rate = (
-                Decimal(base_currency_rate())
-                /
-                targed_account.currency.rate
-                )
-            if rate:
-                targed_account.balance_in_base_currency = (
-                    targed_account.balance * rate
-                    )
+            rate = targed_account.currency.rate
+            if rate is None:
+                targed_account.balance_in_base_currency = Decimal('0.0')
             else:
-                targed_account.balance_in_base_currency = None
+                rate = Decimal(base_currency_rate()) / rate
+                targed_account.balance_in_base_currency = Decimal(
+                    targed_account.balance
+                    ) * rate
         targed_account.save()
 
 
 post_save.connect(update_account_balance, sender=Payment)
 post_delete.connect(update_account_balance, sender=Payment)
-
-
-@receiver([post_save, post_delete], sender=Payment)
-def create_report_on_payment_item_save(sender, instance, **kwargs):
-    create_report.delay()
 
 
 admin.site.register(Payment, PaymentAdmin)

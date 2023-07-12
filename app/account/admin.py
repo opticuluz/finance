@@ -5,6 +5,9 @@ from payment.models import Payment
 from decimal import Decimal
 from constance import config
 from django.utils.translation import gettext_lazy as _
+from report.tasks import create_report
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
 class PaymentInline(admin.TabularInline):
@@ -135,6 +138,7 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                 )
             if obj.currency.title == config.BASE_CURRENCY:
                 obj.credit_card_limit_in_base_currency = obj.credit_card_limit
+                obj.available_balance_in_base_currency = obj.available_balance
             else:
                 rate = obj.currency.rate
                 if rate is None:
@@ -154,6 +158,12 @@ class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             obj.available_balance_in_base_currency = 0
 
         super().save_model(request, obj, form, change)
+
+
+@receiver([post_save, post_delete], sender=Account)
+def create_report_on_payment_item_save(sender, instance, **kwargs):
+    user = instance.user
+    create_report.delay(user.id)
 
 
 admin.site.register(Account, AccountAdmin)
