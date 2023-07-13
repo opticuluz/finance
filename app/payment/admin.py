@@ -1,4 +1,4 @@
-from django.contrib import admin, messages
+from django.contrib import admin
 from .models import Payment
 from user.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
@@ -10,6 +10,7 @@ from constance import config
 from account.admin import base_currency_rate
 from account.models import Account
 from django.contrib.admin import SimpleListFilter
+from django.core.exceptions import ValidationError
 
 
 class UserChargedAccountFilter(SimpleListFilter):
@@ -89,25 +90,24 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         return form
 
     def save_model(self, request, obj, form, change):
-        if obj.payment_type == 'transfer' and not obj.targed_account:
-            messages.error(
-                request,
+        if obj.payment_type == 'transfer' and (obj.targed_account is None):
+            raise ValidationError(
                 'Target account must be specified for transfers.'
                 )
         elif obj.payment_type == 'transfer' and (
             obj.charged_account == obj.targed_account
         ):
-            messages.error(
-                request,
+            raise ValidationError(
                 'Charged account and target account cannot be the same.'
                 )
         elif obj.payment_type != 'transfer' and obj.targed_account:
-            messages.error(
-                request,
+            raise ValidationError(
                 'Target account must be empty for expenses and income.'
                 )
         elif obj.date > timezone.localtime().date():
-            messages.error(request, 'Date cannot be in the future.')
+            raise ValidationError('Date cannot be in the future.')
+        elif obj.amount == 0:
+            raise ValidationError('Amount cannot be 0.')
         else:
             obj.user = request.user
 
@@ -137,6 +137,12 @@ def update_account_balance(sender, instance, **kwargs):
         payment_type='income'
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
+    targed_balance = charged_account.targed_payments.filter(
+            payment_type='transfer'
+            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+    charged_balance = charged_balance + targed_balance
+
     charged_balance -= charged_account.charged_payments.filter(
         payment_type__in=['expenses', 'transfer']
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
@@ -158,37 +164,37 @@ def update_account_balance(sender, instance, **kwargs):
 
     if instance.payment_type == 'transfer':
         targed_account = instance.targed_account
+        if targed_account is not None:
+            targed_balance1 = targed_account.targed_payments.filter(
+                payment_type='transfer'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
-        targed_balance1 = targed_account.targed_payments.filter(
-            payment_type='transfer'
-            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+            targed_balance2 = targed_account.charged_payments.filter(
+                payment_type='income'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
-        targed_balance2 = targed_account.charged_payments.filter(
-            payment_type='income'
-            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+            targed_balance = targed_balance1 + targed_balance2
 
-        targed_balance = targed_balance1 + targed_balance2
+            targed_balance -= targed_account.charged_payments.filter(
+                payment_type='expenses'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
-        targed_balance -= targed_account.charged_payments.filter(
-            payment_type='expenses'
-            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+            targed_account.balance = targed_balance
 
-        targed_account.balance = targed_balance
-
-        if targed_account.currency.title == config.BASE_CURRENCY:
-            targed_account.balance_in_base_currency = (
-                targed_account.balance
-                )
-        else:
-            rate = targed_account.currency.rate
-            if rate is None:
-                targed_account.balance_in_base_currency = Decimal('0.0')
-            else:
-                rate = Decimal(base_currency_rate()) / rate
-                targed_account.balance_in_base_currency = Decimal(
+            if targed_account.currency.title == config.BASE_CURRENCY:
+                targed_account.balance_in_base_currency = (
                     targed_account.balance
-                    ) * rate
-        targed_account.save()
+                    )
+            else:
+                rate = targed_account.currency.rate
+                if rate is None:
+                    targed_account.balance_in_base_currency = Decimal('0.0')
+                else:
+                    rate = Decimal(base_currency_rate()) / rate
+                    targed_account.balance_in_base_currency = Decimal(
+                        targed_account.balance
+                        ) * rate
+            targed_account.save()
 
 
 post_save.connect(update_account_balance, sender=Payment)
