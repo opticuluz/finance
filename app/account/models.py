@@ -77,6 +77,13 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    my_order = models.IntegerField(
+        default=0,
+        blank=False,
+        null=False,
+        db_index=True
+    )
+
     def __str__(self):
         if self.currency.title == 'USD':
             return f'{self.account_name}: ${self.balance}'
