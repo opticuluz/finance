@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from report.tasks import create_report
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from adminsortable2.admin import SortableAdminMixin
 
 
 class PaymentInline(admin.TabularInline):
@@ -98,14 +99,19 @@ def base_currency_rate():
     return None
 
 
-class AccountAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
-    ordering = ['account_name', 'currency']
+class AccountAdmin(
+        SortableAdminMixin,
+        UserRestrictedAdminMixin,
+        admin.ModelAdmin
+        ):
+    ordering = ['my_order']
     list_display = [
         'account_name',
         'balance',
         'currency',
         'balance_in_base_currency',
-        'include_account_in_report'
+        'include_account_in_report',
+        'my_order'
         ]
     list_filter = ['account_name', 'include_account_in_report', 'user']
     search_fields = ['account_name', 'user']
