@@ -6,6 +6,7 @@ from constance import config
 from account.admin import base_currency_rate
 from decimal import Decimal
 from report.tasks import create_report
+from logs.models import LogEntry
 
 
 @app.task
@@ -30,6 +31,7 @@ def update_all_rates():
 
     if response.status_code == 200:
         data = response.json()
+        LogEntry.objects.create(data=data)
         rates = data.get('rates')
         if rates:
             rate_for_base = rates.pop(config.BASE_CURRENCY)
