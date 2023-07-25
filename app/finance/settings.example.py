@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'payment',
     'report',
     'django_celery_beat',
+    'logs',
 ]
 
 MIDDLEWARE = [
