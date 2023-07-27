@@ -46,7 +46,7 @@ class UserChargedAccountFilter(SimpleListFilter):
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     class Media:
-        js = ['js/change_form.js']
+        js = ['js/change_payment_form.js']
 
     ordering = ['-created_at']
     list_display = [
