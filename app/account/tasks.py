@@ -1,10 +1,11 @@
 from finance.celery import app
 import celery
 from .models import Account, Currency
+from payment.models import Payment
 import requests
 from constance import config
 from account.admin import base_currency_rate
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from report.tasks import create_report
 from logs.models import LogEntry
 
@@ -103,3 +104,25 @@ def recalculate_balance_in_base_currency():
             account.available_balance_in_base_currency = 0
 
         account.save()
+
+    payments = Payment.objects.all()
+
+    for payment in payments:
+        if payment.charged_account.currency.title == config.BASE_CURRENCY:
+            payment.amount_in_base_currency = payment.amount
+        else:
+            rate = payment.charged_account.currency.rate
+            if rate is None:
+                payment.amount_in_base_currency = Decimal('0.0')
+            else:
+                rate = Decimal(base_currency_rate()) / rate
+                amount_in_base_currency = Decimal(
+                    payment.amount
+                    ) * rate
+                rounded_amount = amount_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                payment.amount_in_base_currency = rounded_amount
+
+        payment.save()
