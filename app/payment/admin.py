@@ -147,6 +147,10 @@ def update_account_balance(sender, instance, **kwargs):
         payment_type__in=['expenses', 'transfer']
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
+    charged_balance -= charged_account.targed_payments.filter(
+        payment_type__in=['transfer']
+        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
     charged_account.balance = charged_balance
 
     if charged_account.currency.title == config.BASE_CURRENCY:
@@ -177,6 +181,10 @@ def update_account_balance(sender, instance, **kwargs):
 
             targed_balance -= targed_account.charged_payments.filter(
                 payment_type='expenses'
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+            targed_balance -= targed_account.charged_payments.filter(
+                payment_type='transfer'
                 ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
             targed_account.balance = targed_balance
