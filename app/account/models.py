@@ -9,7 +9,7 @@ class Currency(models.Model):
         verbose_name_plural = 'Currencies'
 
     title = models.CharField(max_length=3, unique=True)
-    symbol = models.CharField(max_length=1)
+    symbol = models.CharField(max_length=10)
     rate = models.DecimalField(
         max_digits=20,
         decimal_places=6,
