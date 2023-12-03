@@ -26,7 +26,7 @@ services:
       - redis
 
   db:
-    image: postgres:15.3-alpine
+    image: postgres:15-alpine
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
