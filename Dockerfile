@@ -1,4 +1,4 @@
-FROM python:3.11.4-alpine3.18
+FROM python:3.11-alpine
 LABEL maintainer="opticuluz"
 
 ENV PYTHONUNBUFFERED 1
