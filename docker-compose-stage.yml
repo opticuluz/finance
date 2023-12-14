@@ -6,15 +6,15 @@ services:
       context: .
       args:
         - DEV=false
+    restart: always
     ports:
-      - "8000:8000"
+      - 8000:8000
     volumes:
       - ./app:/app
-    command: >
-      sh -c "python manage.py wait_for_db &&
-             python manage.py migrate && 
-             python manage.py runserver 0.0.0.0:8000"
+      - static_data:/vol/web
     environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
       - DB_HOST=db
       - DB_NAME=finance_db
       - DB_USER=postgres_user
@@ -25,8 +25,41 @@ services:
       - db
       - redis
 
+  proxy:
+    build:
+      context: ./docker/proxy
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - static_data:/vol/static
+      - certbot-web:/vol/www
+      - proxy-dhparams:/vol/proxy
+      - certbot-certs:/etc/letsencrypt
+    environment:
+      - DOMAIN=${DOMAIN}
+    container_name: finance_proxy
+
+  certbot:
+    build:
+      context: ./docker/certbot
+    command: echo "Skipping..."
+    environment:
+      - EMAIL=${ACME_DEFAULT_EMAIL}
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - certbot-web:/vol/www
+      - certbot-certs:/etc/letsencrypt/
+    depends_on:
+      - proxy
+    container_name: finance_certbot
+
   db:
     image: postgres:15-alpine
+    restart: always
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -37,6 +70,7 @@ services:
 
   redis:
     image: redis:7.0-alpine
+    restart: always
     volumes:
       - redis-data:/data
     container_name: finance_redis
@@ -44,6 +78,7 @@ services:
   celery-beat: &celery
     build:
       context: .
+    restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
       - DB_HOST=db
@@ -78,3 +113,7 @@ services:
 volumes:
   db-data:
   redis-data:
+  static_data:
+  certbot-web:
+  proxy-dhparams:
+  certbot-certs:
