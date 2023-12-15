@@ -21,12 +21,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=s-dut%+k538siw*s2oar^chr#ha6(5+-c6gi(3&k%#(^vd%u0'
+# SECRET_KEY = 'django-insecure-=s-dut%+k538siw*s2oar^chr#ha6(5+-c6gi(3&k%#(^vd%u0'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'setmeinprod')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get("DJANGO_DEBUG", 0)))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] if DEBUG else os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')
 
 
 # Application definition
@@ -151,6 +152,10 @@ DATE_INPUT_FORMATS = ['%d.%m.%Y']
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/static/media/'
+
+STATIC_ROOT = '/vol/web/static'
+MEDIA_ROOT = '/vol/web/media'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
