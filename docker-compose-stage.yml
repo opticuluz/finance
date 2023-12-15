@@ -81,6 +81,7 @@ services:
     restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
       - DB_HOST=db
       - DB_NAME=finance_db
       - DB_USER=postgres_user
