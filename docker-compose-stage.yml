@@ -7,8 +7,6 @@ services:
       args:
         - DEV=false
     restart: always
-    ports:
-      - 8000:8000
     volumes:
       - ./app:/app
       - static_data:/vol/web
