@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        - DEV=false
+        - DEV=true
     restart: always
     volumes:
       - ./app:/app
@@ -69,6 +69,8 @@ services:
   redis:
     image: redis:7.0-alpine
     restart: always
+    environment:
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
     volumes:
       - redis-data:/data
     container_name: finance_redis
