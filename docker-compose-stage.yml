@@ -69,8 +69,6 @@ services:
   redis:
     image: redis:7.0-alpine
     restart: always
-    environment:
-      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
     volumes:
       - redis-data:/data
     container_name: finance_redis
