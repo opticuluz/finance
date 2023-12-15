@@ -22,6 +22,8 @@ server {
 
     ssl_dhparam /vol/proxy/ssl-dhparams.pem;
 
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     location /static {
