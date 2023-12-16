@@ -192,3 +192,4 @@ CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
 CELERY_TIMEZONE = "Asia/Tbilisi"
 
 USE_X_FORWARDED_HOST = True
+CSRF_TRUSTED_ORIGINS = ['https://*.utester300117.online']
