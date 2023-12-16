@@ -103,7 +103,7 @@ services:
     ports:
       - 5555:5555
     volumes:
-      - static_data:/vol/static
+      - static_data:/vol/web
     command: celery -A finance flower
     container_name: finance_celery_flower
 
