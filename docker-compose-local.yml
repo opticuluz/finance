@@ -4,6 +4,8 @@ services:
   app:
     build:
       context: .
+      args:
+        - DEV=true
     ports:
       - "8000:8000"
     volumes:
@@ -20,9 +22,9 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-      - DEBUG=1
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DOMAIN}
+      - DEBUG=1
     container_name: finance_app
     depends_on:
       - db
