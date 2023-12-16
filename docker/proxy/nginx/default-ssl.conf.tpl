@@ -28,12 +28,6 @@ server {
         alias /vol/static;
     }
 
-    location /flower {
-        proxy_pass                          http://${FLOWER_HOST}:${FLOWER_PORT};
-        include                             /etc/nginx/uwsgi_params;
-        client_max_body_size                10M;
-    }
-
     location / {
         uwsgi_pass                          ${APP_HOST}:${APP_PORT};
         include                             /etc/nginx/uwsgi_params;

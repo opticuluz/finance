@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        - DEV=false
+        - DEV=true
     restart: always
     volumes:
       - static_data:/vol/web
@@ -84,8 +84,6 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-    volumes:
-      - static_data:/vol/web
     depends_on:
       - redis
       - db
@@ -100,12 +98,12 @@ services:
     command: celery -A finance worker -l info -E
     container_name: finance_celery_worker
 
-  celery-flower:
-    <<: *celery
-    ports:
-      - 5555:5555
-    command: celery -A finance flower
-    container_name: finance_celery_flower
+  # celery-flower:
+  #   <<: *celery
+  #   ports:
+  #     - 5555:5555
+  #   command: celery -A finance flower
+  #   container_name: finance_celery_flower
 
 
 volumes:
