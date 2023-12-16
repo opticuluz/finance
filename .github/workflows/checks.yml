@@ -3,6 +3,10 @@ name: Checks
 
 on: [push]
 
+env:
+  DOMAIN: ${{ secrets.DOMAIN }}
+  DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+
 jobs:
   test-lint:
     name: Test and Lint
@@ -19,5 +23,7 @@ jobs:
         run: docker-compose -f docker-compose-local.yml up -d db        
       - name: Test
         run: docker-compose -f docker-compose-local.yml run --rm app sh -c "python manage.py wait_for_db && python manage.py test"
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       - name: Lint
         run: docker-compose -f docker-compose-local.yml run --rm app sh -c "flake8"

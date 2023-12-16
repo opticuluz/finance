@@ -17,6 +17,7 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
+      - DEBUG=1
     container_name: finance_app
     depends_on:
       - db
