@@ -184,4 +184,4 @@ CELERY_BROKER_URL = 'redis://redis:6379/1'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
 CELERY_TIMEZONE = "Asia/Tbilisi"
 
-CSRF_TRUSTED_ORIGINS = ['https://*.utester300117.online']
+CSRF_TRUSTED_ORIGINS = ['https://*.opticuluz.com']
