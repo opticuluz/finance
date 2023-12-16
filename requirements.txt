@@ -7,3 +7,4 @@ django-celery-beat>=2.5.0,<2.6
 flower>=2.0.0,<2.1
 requests>=2.31.0,<2.32
 django-admin-sortable2>=2.1.9,<2.2
+uWSGI>=2.0,<2.1

@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=s-dut%+k538siw*s2oar^chr#ha6(5+-c6gi(3&k%#(^vd%u0'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'vE_nQsb8OeA6Mnt7$WUUPAgVgi_NB92aa7ADGD8ABBnIIwlK-!-Lm')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(int(os.environ.get("DJANGO_DEBUG", 0)))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] if DEBUG else os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')
 
 
 # Application definition
@@ -150,11 +150,12 @@ DATE_INPUT_FORMATS = ['%d.%m.%Y']
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/static/'
+MEDIA_URL = '/static/media/'
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+STATIC_ROOT = '/vol/web/static'
+MEDIA_ROOT = '/vol/web/media'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -162,8 +163,6 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'user.User'
-
-# FIXER_ACCESS_KEY = 'c6206ca966ddba7d45a06f7edccd8700'
 
 EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
 
@@ -184,3 +183,5 @@ CONSTANCE_CONFIG = {
 CELERY_BROKER_URL = 'redis://redis:6379/1'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
 CELERY_TIMEZONE = "Asia/Tbilisi"
+
+CSRF_TRUSTED_ORIGINS = ['https://*.utester300117.online']

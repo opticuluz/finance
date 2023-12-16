@@ -5,28 +5,59 @@ services:
     build:
       context: .
       args:
-        - DEV=false
-    ports:
-      - "8000:8000"
+        - DEV=true
+    restart: always
     volumes:
-      - ./app:/app
-    command: >
-      sh -c "python manage.py wait_for_db &&
-             python manage.py migrate && 
-             python manage.py runserver 0.0.0.0:8000"
+      - static_data:/vol/web
     environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
       - DB_HOST=db
       - DB_NAME=finance_db
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
+      - DEBUG=1
     container_name: finance_app
     depends_on:
       - db
       - redis
 
+  proxy:
+    build:
+      context: ./docker/proxy
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - static_data:/vol/static
+      - certbot-web:/vol/www
+      - proxy-dhparams:/vol/proxy
+      - certbot-certs:/etc/letsencrypt
+    environment:
+      - DOMAIN=${DOMAIN}
+    container_name: finance_proxy
+
+  certbot:
+    build:
+      context: ./docker/certbot
+    command: echo "Skipping..."
+    environment:
+      - EMAIL=${ACME_DEFAULT_EMAIL}
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - certbot-web:/vol/www
+      - certbot-certs:/etc/letsencrypt/
+    depends_on:
+      - proxy
+    container_name: finance_certbot
+
   db:
     image: postgres:15-alpine
+    restart: always
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -37,6 +68,7 @@ services:
 
   redis:
     image: redis:7.0-alpine
+    restart: always
     volumes:
       - redis-data:/data
     container_name: finance_redis
@@ -44,15 +76,15 @@ services:
   celery-beat: &celery
     build:
       context: .
+    restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
+      - DJANGO_ALLOWED_HOSTS=${DOMAIN}
       - DB_HOST=db
       - DB_NAME=finance_db
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-    volumes:
-      - ./app:/app
     depends_on:
       - redis
       - db
@@ -67,14 +99,18 @@ services:
     command: celery -A finance worker -l info -E
     container_name: finance_celery_worker
 
-  celery-flower:
-    <<: *celery
-    ports:
-      - 5555:5555
-    command: celery -A finance flower
-    container_name: finance_celery_flower
+  # celery-flower:
+  #   <<: *celery
+  #   ports:
+  #     - 5555:5555
+  #   command: celery -A finance flower
+  #   container_name: finance_celery_flower
 
 
 volumes:
   db-data:
   redis-data:
+  static_data:
+  certbot-web:
+  proxy-dhparams:
+  certbot-certs:
