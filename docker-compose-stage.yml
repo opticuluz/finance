@@ -5,10 +5,9 @@ services:
     build:
       context: .
       args:
-        - DEV=true
+        - DEV=false
     restart: always
     volumes:
-      - ./app:/app
       - static_data:/vol/web
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -85,8 +84,6 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
-    volumes:
-      - ./app:/app
     depends_on:
       - redis
       - db
