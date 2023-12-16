@@ -84,6 +84,8 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
+    volumes:
+      - static_data:/vol/web
     depends_on:
       - redis
       - db
@@ -102,8 +104,6 @@ services:
     <<: *celery
     ports:
       - 5555:5555
-    volumes:
-      - static_data:/vol/web
     command: celery -A finance flower
     container_name: finance_celery_flower
 
