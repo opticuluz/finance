@@ -184,4 +184,4 @@ CELERY_BROKER_URL = 'redis://redis:6379/1'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
 CELERY_TIMEZONE = "Asia/Tbilisi"
 
-CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')
+CSRF_TRUSTED_ORIGINS = ['https://*.opticuluz.com']
