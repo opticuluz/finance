@@ -6,7 +6,7 @@ from account.models import Account, Currency
 from payment.models import Payment
 
 
-class AdminSiteTests(TestCase):
+class PaymentAdminSiteTests(TestCase):
 
     def setUp(self):
         self.client = Client()
