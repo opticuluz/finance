@@ -1,10 +1,10 @@
-from django.contrib import admin, messages
+from django.contrib import admin  # , messages
+# from django.utils.translation import gettext_lazy as _
 from .models import Account, Currency
 from user.mixins import UserRestrictedAdminMixin
 from payment.models import Payment
 from decimal import Decimal
 from constance import config
-from django.utils.translation import gettext_lazy as _
 from report.tasks import create_report
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -82,19 +82,21 @@ def base_currency_rate():
         if base_currency_obj.rate:
             return base_currency_obj.rate
         else:
-            messages.warning(
-                # request,
-                _("Rate not found for %(currency)s")
-                %
-                {'currency': base_currency}
-            )
+            return None  # Вернуть None вместо вывода предупреждения
+            # messages.warning(
+            #     # request,
+            #     _("Rate not found for %(currency)s")
+            #     %
+            #     {'currency': base_currency}
+            # )
     except Currency.DoesNotExist:
-        messages.warning(
-            # request,
-            _("Base currency %(currency)s not found")
-            %
-            {'currency': base_currency}
-        )
+        return None  # Вернуть None вместо вывода предупреждения
+        # messages.warning(
+        #     # request,
+        #     _("Base currency %(currency)s not found")
+        #     %
+        #     {'currency': base_currency}
+        # )
 
     return None
 
