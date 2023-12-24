@@ -112,12 +112,20 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         else:
             obj.user = request.user
 
-        post_save.send(sender=Payment, instance=obj)
+        post_save.send(
+            sender=Payment,
+            instance=obj,
+            dispatch_uid="update_payment_amount_in_base_currency"
+            )
 
         super().save_model(request, obj, form, change)
 
 
-@receiver([post_save, post_delete], sender=Payment)
+@receiver(
+    [post_save, post_delete],
+    sender=Payment,
+    dispatch_uid="update_account_balance"
+    )
 def update_account_balance(sender, instance, **kwargs):
     charged_account = instance.charged_account
 
@@ -197,7 +205,11 @@ post_save.connect(update_account_balance, sender=Payment)
 post_delete.connect(update_account_balance, sender=Payment)
 
 
-@receiver([post_save], sender=Payment)
+@receiver(
+    [post_save],
+    sender=Payment,
+    dispatch_uid="update_payment_amount_in_base_currency"
+    )
 def update_payment_amount_in_base_currency(sender, instance, **kwargs):
     rate = base_currency_rate()
     base_currency = config.BASE_CURRENCY
