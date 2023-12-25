@@ -121,6 +121,60 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
+def calculate_amount_in_base_currency(instance, **kwargs):
+    rate = base_currency_rate()
+    base_currency = config.BASE_CURRENCY
+    if rate is not None:
+        if instance.charged_account.currency.title == base_currency:
+            instance.amount_in_base_currency = instance.amount
+        else:
+            amount_in_base_currency = Decimal(
+                instance.amount
+                /
+                instance.charged_account.currency.rate_in_base
+                )
+            rounded_amount = amount_in_base_currency.quantize(
+                Decimal('0.00'),
+                rounding=ROUND_HALF_UP
+                )
+            instance.amount_in_base_currency = rounded_amount
+    else:
+        return None  # Вернуть None вместо вывода предупреждения
+        # messages.warning(
+        #     # request,
+        #     _("Rate not found for %(currency)s")
+        #     %
+        #     {'currency': base_currency}
+        # )
+
+
+def calculate_balance_in_base_currency(instance, **kwargs):
+    rate = base_currency_rate()
+    base_currency = config.BASE_CURRENCY
+    if rate is not None:
+        if instance.currency.title == base_currency:
+            instance.balance_in_base_currency = instance.balance
+        else:
+            balance_in_base_currency = Decimal(
+                instance.balance
+                /
+                instance.currency.rate_in_base
+                )
+            rounded_amount = balance_in_base_currency.quantize(
+                Decimal('0.00'),
+                rounding=ROUND_HALF_UP
+                )
+            instance.balance_in_base_currency = rounded_amount
+    else:
+        return None  # Вернуть None вместо вывода предупреждения
+        # messages.warning(
+        #     # request,
+        #     _("Rate not found for %(currency)s")
+        #     %
+        #     {'currency': base_currency}
+        # )
+
+
 @receiver(
     [post_save, post_delete],
     sender=Payment,
@@ -145,17 +199,19 @@ def update_account_balance(sender, instance, **kwargs):
 
     charged_account.balance = charged_balance
 
-    if charged_account.currency.title == config.BASE_CURRENCY:
-        charged_account.balance_in_base_currency = charged_account.balance
-    else:
-        rate = charged_account.currency.rate
-        if rate is None:
-            charged_account.balance_in_base_currency = Decimal('0.0')
-        else:
-            rate = Decimal(base_currency_rate()) / rate
-            charged_account.balance_in_base_currency = Decimal(
-                charged_account.balance
-                ) * rate
+    calculate_balance_in_base_currency(instance=charged_account)
+
+    # if charged_account.currency.title == config.BASE_CURRENCY:
+    #     charged_account.balance_in_base_currency = charged_account.balance
+    # else:
+    #     rate = charged_account.currency.rate
+    #     if rate is None:
+    #         charged_account.balance_in_base_currency = Decimal('0.0')
+    #     else:
+    #         rate = Decimal(base_currency_rate()) / rate
+    #         charged_account.balance_in_base_currency = Decimal(
+    #             charged_account.balance
+    #             ) * rate
     charged_account.save()
 
     if instance.payment_type == 'transfer':
@@ -185,19 +241,22 @@ def update_account_balance(sender, instance, **kwargs):
 
             targed_account.balance = targed_balance
 
-            if targed_account.currency.title == config.BASE_CURRENCY:
-                targed_account.balance_in_base_currency = (
-                    targed_account.balance
-                    )
-            else:
-                rate = targed_account.currency.rate
-                if rate is None:
-                    targed_account.balance_in_base_currency = Decimal('0.0')
-                else:
-                    rate = Decimal(base_currency_rate()) / rate
-                    targed_account.balance_in_base_currency = Decimal(
-                        targed_account.balance
-                        ) * rate
+            # if targed_account.currency.title == config.BASE_CURRENCY:
+            #     targed_account.balance_in_base_currency = (
+            #         targed_account.balance
+            #         )
+            # else:
+            #     rate = targed_account.currency.rate
+            #     if rate is None:
+            #         targed_account.balance_in_base_currency = Decimal('0.0')
+            #     else:
+            #         rate = Decimal(base_currency_rate()) / rate
+            #         targed_account.balance_in_base_currency = Decimal(
+            #             targed_account.balance
+            #             ) * rate
+
+            calculate_balance_in_base_currency(instance=targed_account)
+
             targed_account.save()
 
 
@@ -211,30 +270,8 @@ post_delete.connect(update_account_balance, sender=Payment)
     dispatch_uid="update_payment_amount_in_base_currency"
     )
 def update_payment_amount_in_base_currency(sender, instance, **kwargs):
-    rate = base_currency_rate()
-    base_currency = config.BASE_CURRENCY
-    if rate is not None:
-        if instance.charged_account.currency.title == base_currency:
-            instance.amount_in_base_currency = instance.amount
-        else:
-            amount_in_base_currency = Decimal(
-                instance.amount
-                /
-                instance.charged_account.currency.rate_in_base
-                )
-            rounded_amount = amount_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.amount_in_base_currency = rounded_amount
-    else:
-        return None  # Вернуть None вместо вывода предупреждения
-        # messages.warning(
-        #     # request,
-        #     _("Rate not found for %(currency)s")
-        #     %
-        #     {'currency': base_currency}
-        # )
+
+    calculate_amount_in_base_currency(instance=instance)
 
 
 post_save.connect(update_payment_amount_in_base_currency, sender=Payment)
