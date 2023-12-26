@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
-from account.admin import base_currency_rate
+from account.currency_conversion import base_currency_rate
 from account.models import Account
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
@@ -156,9 +156,9 @@ def calculate_balance_in_base_currency(instance, **kwargs):
             instance.balance_in_base_currency = instance.balance
         else:
             balance_in_base_currency = Decimal(
-                instance.balance
+                Decimal(instance.balance)
                 /
-                instance.currency.rate_in_base
+                Decimal(instance.currency.rate_in_base)
                 )
             rounded_amount = balance_in_base_currency.quantize(
                 Decimal('0.00'),
@@ -173,6 +173,45 @@ def calculate_balance_in_base_currency(instance, **kwargs):
         #     %
         #     {'currency': base_currency}
         # )
+
+    if instance.credit_card_limit != Decimal('0.0'):
+        instance.available_balance = (
+            Decimal(instance.balance) + instance.credit_card_limit
+            )
+        if instance.currency.title == config.BASE_CURRENCY:
+            instance.credit_card_limit_in_base_currency = instance.credit_card_limit
+            instance.available_balance_in_base_currency = instance.available_balance
+        else:
+            rate = instance.currency.rate
+            if rate is None:
+                instance.credit_card_limit_in_base_currency = Decimal('0.0')
+                instance.available_balance_in_base_currency = Decimal('0.0')
+            else:
+                instance.credit_card_limit_in_base_currency = Decimal(
+                    instance.credit_card_limit
+                    /
+                    instance.currency.rate_in_base
+                    )
+                rounded_amount_1 = instance.credit_card_limit_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.credit_card_limit_in_base_currency = rounded_amount_1
+                instance.available_balance_in_base_currency = Decimal(
+                    instance.available_balance
+                    /
+                    instance.currency.rate_in_base
+                    )
+                rounded_amount_2 = instance.available_balance_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.available_balance_in_base_currency = rounded_amount_2
+
+    else:
+        instance.available_balance = 0
+        instance.credit_card_limit_in_base_currency = 0
+        instance.available_balance_in_base_currency = 0
 
 
 @receiver(

@@ -9,6 +9,7 @@ from report.tasks import create_report
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from adminsortable2.admin import SortableAdminMixin
+from payment.admin import calculate_balance_in_base_currency
 
 
 class PaymentInline(admin.TabularInline):
@@ -75,30 +76,30 @@ class PaymentTargedInline(admin.TabularInline):
         return queryset
 
 
-def base_currency_rate():
-    base_currency = config.BASE_CURRENCY
-    try:
-        base_currency_obj = Currency.objects.get(title=base_currency)
-        if base_currency_obj.rate:
-            return base_currency_obj.rate
-        else:
-            return None  # Вернуть None вместо вывода предупреждения
-            # messages.warning(
-            #     # request,
-            #     _("Rate not found for %(currency)s")
-            #     %
-            #     {'currency': base_currency}
-            # )
-    except Currency.DoesNotExist:
-        return None  # Вернуть None вместо вывода предупреждения
-        # messages.warning(
-        #     # request,
-        #     _("Base currency %(currency)s not found")
-        #     %
-        #     {'currency': base_currency}
-        # )
+# def base_currency_rate():
+#     base_currency = config.BASE_CURRENCY
+#     try:
+#         base_currency_obj = Currency.objects.get(title=base_currency)
+#         if base_currency_obj.rate:
+#             return base_currency_obj.rate
+#         else:
+#             return None  # Вернуть None вместо вывода предупреждения
+#             # messages.warning(
+#             #     # request,
+#             #     _("Rate not found for %(currency)s")
+#             #     %
+#             #     {'currency': base_currency}
+#             # )
+#     except Currency.DoesNotExist:
+#         return None  # Вернуть None вместо вывода предупреждения
+#         # messages.warning(
+#         #     # request,
+#         #     _("Base currency %(currency)s not found")
+#         #     %
+#         #     {'currency': base_currency}
+#         # )
 
-    return None
+#     return None
 
 
 class AccountAdmin(
@@ -130,40 +131,43 @@ class AccountAdmin(
     inlines = [PaymentInline, PaymentTargedInline]
 
     def save_model(self, request, obj, form, change):
-        if obj.currency.title == config.BASE_CURRENCY:
-            obj.balance_in_base_currency = obj.balance
-        else:
-            rate = obj.currency.rate
-            if rate is None:
-                obj.balance_in_base_currency = Decimal('0.0')
-            else:
-                rate = Decimal(base_currency_rate()) / rate
-                obj.balance_in_base_currency = Decimal(obj.balance) * rate
 
-        if obj.credit_card_limit != Decimal('0.0'):
-            obj.available_balance = (
-                Decimal(obj.balance) + obj.credit_card_limit
-                )
-            if obj.currency.title == config.BASE_CURRENCY:
-                obj.credit_card_limit_in_base_currency = obj.credit_card_limit
-                obj.available_balance_in_base_currency = obj.available_balance
-            else:
-                rate = obj.currency.rate
-                if rate is None:
-                    obj.credit_card_limit_in_base_currency = Decimal('0.0')
-                    obj.available_balance_in_base_currency = Decimal('0.0')
-                else:
-                    rate = Decimal(base_currency_rate()) / rate
-                    obj.credit_card_limit_in_base_currency = (
-                        Decimal(obj.credit_card_limit) * rate
-                        )
-                    obj.available_balance_in_base_currency = (
-                        Decimal(obj.available_balance) * rate
-                        )
-        else:
-            obj.available_balance = 0
-            obj.credit_card_limit_in_base_currency = 0
-            obj.available_balance_in_base_currency = 0
+        calculate_balance_in_base_currency(instance=obj)
+
+        # if obj.currency.title == config.BASE_CURRENCY:
+        #     obj.balance_in_base_currency = obj.balance
+        # else:
+        #     rate = obj.currency.rate
+        #     if rate is None:
+        #         obj.balance_in_base_currency = Decimal('0.0')
+        #     else:
+        #         rate = Decimal(base_currency_rate()) / rate
+        #         obj.balance_in_base_currency = Decimal(obj.balance) * rate
+
+        # if obj.credit_card_limit != Decimal('0.0'):
+        #     obj.available_balance = (
+        #         Decimal(obj.balance) + obj.credit_card_limit
+        #         )
+        #     if obj.currency.title == config.BASE_CURRENCY:
+        #         obj.credit_card_limit_in_base_currency = obj.credit_card_limit
+        #         obj.available_balance_in_base_currency = obj.available_balance
+        #     else:
+        #         rate = obj.currency.rate
+        #         if rate is None:
+        #             obj.credit_card_limit_in_base_currency = Decimal('0.0')
+        #             obj.available_balance_in_base_currency = Decimal('0.0')
+        #         else:
+        #             rate = Decimal(base_currency_rate()) / rate
+        #             obj.credit_card_limit_in_base_currency = (
+        #                 Decimal(obj.credit_card_limit) * rate
+        #                 )
+        #             obj.available_balance_in_base_currency = (
+        #                 Decimal(obj.available_balance) * rate
+        #                 )
+        # else:
+        #     obj.available_balance = 0
+        #     obj.credit_card_limit_in_base_currency = 0
+        #     obj.available_balance_in_base_currency = 0
 
         super().save_model(request, obj, form, change)
 

@@ -4,7 +4,7 @@ from .models import Account, Currency
 from payment.models import Payment
 import requests
 from constance import config
-from account.admin import base_currency_rate
+from account.currency_conversion import base_currency_rate
 from decimal import Decimal  # , ROUND_HALF_UP
 from report.tasks import create_report
 from logs.models import LogEntry
