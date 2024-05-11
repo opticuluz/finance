@@ -26,7 +26,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'vE_nQsb8OeA6Mnt7$WUUPAgVgi_NB9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.environ.get("DJANGO_DEBUG", 0)))
 
-ALLOWED_HOSTS = [] if DEBUG else os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')
 
 
 # Application definition
@@ -136,15 +136,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-USE_L10N = False
-
-FIRST_DAY_OF_WEEK = 1
-
-DATETIME_FORMAT = 'd F Y H:i:s'
-
-DATE_FORMAT = 'd F Y'
-
-DATE_INPUT_FORMATS = ['%d.%m.%Y']
+FORMAT_MODULE_PATH = 'finance.formats'
 
 
 # Static files (CSS, JavaScript, Images)

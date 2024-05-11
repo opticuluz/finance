@@ -1,0 +1,7 @@
+FIRST_DAY_OF_WEEK = 1
+
+DATETIME_FORMAT = 'd F Y H:i:s'
+
+DATE_FORMAT = 'd F Y'
+
+DATE_INPUT_FORMATS = ['%d.%m.%Y']
