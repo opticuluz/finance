@@ -1,9 +1,8 @@
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from account.models import Account, Currency
 from payment.models import Payment
 from django.contrib.auth import get_user_model
 from decimal import Decimal
-from constance import config
 from constance.test import override_config
 
 
@@ -102,17 +101,41 @@ class AccountCurrencyTests(TestCase):
         self.assertEqual(self.account_C.balance, Decimal('32999.96'))
         self.assertEqual(self.account_D.balance, Decimal('13328.19'))
 
-        self.assertEqual(self.account_A.balance_in_base_currency, Decimal('2020.85'))
-        self.assertEqual(self.account_B.balance_in_base_currency, Decimal('40.95'))
-        self.assertEqual(self.account_C.balance_in_base_currency, Decimal('364.52'))
-        self.assertEqual(self.account_D.balance_in_base_currency, Decimal('147.22'))
+        self.assertEqual(
+            self.account_A.balance_in_base_currency,
+            Decimal('2020.85')
+            )
+        self.assertEqual(
+            self.account_B.balance_in_base_currency,
+            Decimal('40.95')
+            )
+        self.assertEqual(
+            self.account_C.balance_in_base_currency,
+            Decimal('364.52')
+            )
+        self.assertEqual(
+            self.account_D.balance_in_base_currency,
+            Decimal('147.22')
+            )
 
         self.assertEqual(self.account_A.available_balance, Decimal('7020.85'))
         self.assertEqual(self.account_B.available_balance, Decimal('610.15'))
         self.assertEqual(self.account_C.available_balance, Decimal('82999.96'))
         self.assertEqual(self.account_D.available_balance, Decimal('0.00'))
 
-        self.assertEqual(self.account_A.available_balance_in_base_currency, Decimal('7020.85'))
-        self.assertEqual(self.account_B.available_balance_in_base_currency, Decimal('226.82'))
-        self.assertEqual(self.account_C.available_balance_in_base_currency, Decimal('916.82'))
-        self.assertEqual(self.account_D.available_balance_in_base_currency, Decimal('0.00'))
+        self.assertEqual(
+            self.account_A.available_balance_in_base_currency,
+            Decimal('7020.85')
+            )
+        self.assertEqual(
+            self.account_B.available_balance_in_base_currency,
+            Decimal('226.82')
+            )
+        self.assertEqual(
+            self.account_C.available_balance_in_base_currency,
+            Decimal('916.82')
+            )
+        self.assertEqual(
+            self.account_D.available_balance_in_base_currency,
+            Decimal('0.00')
+            )

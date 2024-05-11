@@ -1,5 +1,6 @@
-from .models import Account, Currency
+from .models import Currency
 from constance import config
+
 
 def base_currency_rate():
     base_currency = config.BASE_CURRENCY

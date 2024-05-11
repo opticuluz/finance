@@ -179,8 +179,12 @@ def calculate_balance_in_base_currency(instance, **kwargs):
             Decimal(instance.balance) + instance.credit_card_limit
             )
         if instance.currency.title == config.BASE_CURRENCY:
-            instance.credit_card_limit_in_base_currency = instance.credit_card_limit
-            instance.available_balance_in_base_currency = instance.available_balance
+            instance.credit_card_limit_in_base_currency = (
+                instance.credit_card_limit
+                )
+            instance.available_balance_in_base_currency = (
+                instance.available_balance
+                )
         else:
             rate = instance.currency.rate
             if rate is None:
@@ -192,20 +196,24 @@ def calculate_balance_in_base_currency(instance, **kwargs):
                     /
                     instance.currency.rate_in_base
                     )
-                rounded_amount_1 = instance.credit_card_limit_in_base_currency.quantize(
-                    Decimal('0.00'),
-                    rounding=ROUND_HALF_UP
+                rounded_amount_1 = (
+                    instance.credit_card_limit_in_base_currency.quantize(
+                        Decimal('0.00'),
+                        rounding=ROUND_HALF_UP
                     )
+                )
                 instance.credit_card_limit_in_base_currency = rounded_amount_1
                 instance.available_balance_in_base_currency = Decimal(
                     instance.available_balance
                     /
                     instance.currency.rate_in_base
                     )
-                rounded_amount_2 = instance.available_balance_in_base_currency.quantize(
-                    Decimal('0.00'),
-                    rounding=ROUND_HALF_UP
+                rounded_amount_2 = (
+                    instance.available_balance_in_base_currency.quantize(
+                        Decimal('0.00'),
+                        rounding=ROUND_HALF_UP
                     )
+                )
                 instance.available_balance_in_base_currency = rounded_amount_2
 
     else:

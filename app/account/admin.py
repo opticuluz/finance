@@ -3,8 +3,6 @@ from django.contrib import admin  # , messages
 from .models import Account, Currency
 from user.mixins import UserRestrictedAdminMixin
 from payment.models import Payment
-from decimal import Decimal
-from constance import config
 from report.tasks import create_report
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -149,8 +147,12 @@ class AccountAdmin(
         #         Decimal(obj.balance) + obj.credit_card_limit
         #         )
         #     if obj.currency.title == config.BASE_CURRENCY:
-        #         obj.credit_card_limit_in_base_currency = obj.credit_card_limit
-        #         obj.available_balance_in_base_currency = obj.available_balance
+        #         obj.credit_card_limit_in_base_currency = (
+        #             obj.credit_card_limit
+        #             )
+        #         obj.available_balance_in_base_currency = (
+        #             obj.available_balance
+        #             )
         #     else:
         #         rate = obj.currency.rate
         #         if rate is None:
