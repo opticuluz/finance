@@ -4,10 +4,11 @@ from .models import Account, Currency
 from payment.models import Payment
 import requests
 from constance import config
-from account.admin import base_currency_rate
-from decimal import Decimal, ROUND_HALF_UP
+from account.currency_conversion import base_currency_rate
+from decimal import Decimal  # , ROUND_HALF_UP
 from report.tasks import create_report
 from logs.models import LogEntry
+from payment.admin import update_payment_amount_in_base_currency
 
 
 @app.task
@@ -59,9 +60,9 @@ def update_all_rates():
 @app.task
 def recalculate_balance_in_base_currency():
 
-    queryset = Account.objects.all()
+    accounts = Account.objects.all()
 
-    for account in queryset:
+    for account in accounts:
         if account.currency.title == config.BASE_CURRENCY:
             account.balance_in_base_currency = account.balance
         else:
@@ -108,21 +109,8 @@ def recalculate_balance_in_base_currency():
     payments = Payment.objects.all()
 
     for payment in payments:
-        if payment.charged_account.currency.title == config.BASE_CURRENCY:
-            payment.amount_in_base_currency = payment.amount
-        else:
-            rate = payment.charged_account.currency.rate
-            if rate is None:
-                payment.amount_in_base_currency = Decimal('0.0')
-            else:
-                rate = Decimal(base_currency_rate()) / rate
-                amount_in_base_currency = Decimal(
-                    payment.amount
-                    ) * rate
-                rounded_amount = amount_in_base_currency.quantize(
-                    Decimal('0.00'),
-                    rounding=ROUND_HALF_UP
-                    )
-                payment.amount_in_base_currency = rounded_amount
-
+        update_payment_amount_in_base_currency(
+            sender=Payment,
+            instance=payment
+            )
         payment.save()

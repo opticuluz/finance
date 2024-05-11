@@ -5,3 +5,5 @@ exclude =
     manage.py,
     settings.py
     settings.example.py
+per-file-ignores =
+    ./account/tests/test_payment_currency_conversion.py: F401
