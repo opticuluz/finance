@@ -36,7 +36,10 @@ class ReportAdminSiteTests(TestCase):
         self.assertContains(res, self.report.income_in_current_month)
         self.assertContains(res, self.report.expenses_in_current_month)
         self.assertContains(res, self.report.total_balance_in_base_currency)
-        self.assertContains(res, self.report.total_available_balance_in_base_currency)
+        self.assertContains(
+            res,
+            self.report.total_available_balance_in_base_currency
+            )
 
     def test_edit_report_page(self):
         url = reverse('admin:report_report_change', args=[self.report.id])
