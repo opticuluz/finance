@@ -58,7 +58,8 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'amount',
         'amount_in_base_currency',
         'category',
-        'date'
+        'date',
+        'include_payment_in_report'
         ]
     list_filter = [
         'created_at',
