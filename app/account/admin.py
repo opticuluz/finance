@@ -190,10 +190,21 @@ admin.site.register(Account, AccountAdmin)
 
 class CurrencyAdmin(admin.ModelAdmin):
     ordering = ['title']
-    list_display = ['title', 'symbol', 'rate_in_base', 'updated_at']
+    list_display = [
+        'title',
+        'symbol',
+        'rate_in_base',
+        'average_rate_in_base_for_month',
+        'updated_at'
+        ]
     search_fields = ['title']
     exclude = ('rate',)
-    readonly_fields = ['rate_in_base', 'created_at', 'updated_at']
+    readonly_fields = [
+        'rate_in_base',
+        'average_rate_in_base_for_month',
+        'created_at',
+        'updated_at'
+        ]
 
 
 admin.site.register(Currency, CurrencyAdmin)

@@ -22,6 +22,12 @@ class Currency(models.Model):
         blank=True,
         null=True
         )
+    average_rate_in_base_for_month = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
