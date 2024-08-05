@@ -1,6 +1,6 @@
 from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
-from .models import Account, Currency
+from .models import Account, Currency, CurrencyHistory
 from user.mixins import UserRestrictedAdminMixin
 from payment.models import Payment
 from report.tasks import create_report
@@ -197,3 +197,14 @@ class CurrencyAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Currency, CurrencyAdmin)
+
+
+class CurrencyHistoryAdmin(admin.ModelAdmin):
+    ordering = ['-date_and_time', 'title']
+    list_display = ['date_and_time', 'title', 'rate_in_base', 'base_currency', 'updated_at']
+    list_filter = ['date_and_time', 'title']
+    search_fields = ['date_and_time']
+    readonly_fields = ['date_and_time', 'title', 'rate_in_base', 'base_currency', 'created_at', 'updated_at']
+
+
+admin.site.register(CurrencyHistory, CurrencyHistoryAdmin)

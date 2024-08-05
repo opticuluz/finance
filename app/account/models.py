@@ -27,6 +27,28 @@ class Currency(models.Model):
 
     def __str__(self):
         return self.title
+    
+
+class CurrencyHistory(models.Model):
+
+    class Meta:
+        verbose_name = 'Currency history'
+        verbose_name_plural = 'Currency history'
+
+    date_and_time = models.DateTimeField()
+    title = models.CharField(max_length=3)
+    rate_in_base = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
+    base_currency = models.CharField(max_length=3)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.title}: {self.rate_in_base}'
 
 
 class Account(models.Model):
