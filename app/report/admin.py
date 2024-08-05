@@ -7,11 +7,13 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     ordering = ['-created_at']
     list_display = [
         'created_at',
-        'user',
         'income_in_current_month',
         'expenses_in_current_month',
+        'income_in_current_year',
+        'expenses_in_current_year',
         'total_balance_in_base_currency',
         'total_available_balance_in_base_currency',
+        'updated_at'
         ]
     list_filter = ['user']
     search_fields = ['user']

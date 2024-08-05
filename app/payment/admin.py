@@ -1,6 +1,7 @@
 from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
 from .models import Payment
+from category.models import Category
 from user.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
@@ -19,7 +20,6 @@ class UserChargedAccountFilter(SimpleListFilter):
     parameter_name = 'charged_account_user'
 
     def lookups(self, request, model_admin):
-        # Return the choices for the filter
         if not request.user.is_superuser:
             charged_accounts = Account.objects.filter(
                 user=request.user
@@ -30,18 +30,31 @@ class UserChargedAccountFilter(SimpleListFilter):
             return [(account.id, str(account)) for account in charged_accounts]
 
     def queryset(self, request, queryset):
-        # Filter the queryset based on the selected filter value
         charged_account_id = self.value()
         if charged_account_id:
             return queryset.filter(charged_account_id=charged_account_id)
         return queryset
 
-    def label_from_instance(self, obj):
-        if obj.currency.title == 'USD':
-            return f'{obj.account_name}: ${obj.balance}'
+
+class UserCategoryFilter(SimpleListFilter):
+    title = 'category'
+    parameter_name = 'category_user'
+
+    def lookups(self, request, model_admin):
+        if not request.user.is_superuser:
+            categories = Category.objects.filter(
+                user=request.user
+                ).order_by('category_name')
+            return [(category.id, str(category)) for category in categories]
         else:
-            sign = obj.currency.symbol
-            return f'{obj.account_name}: {obj.balance} {sign}'
+            categories = Category.objects.all().order_by('category_name')
+            return [(category.id, str(category)) for category in categories]
+
+    def queryset(self, request, queryset):
+        category_id = self.value()
+        if category_id:
+            return queryset.filter(category_id=category_id)
+        return queryset
 
 
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -58,13 +71,15 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'amount',
         'amount_in_base_currency',
         'category',
-        'date'
+        'date',
+        'include_payment_in_report'
         ]
     list_filter = [
         'created_at',
         'date',
         'payment_type',
         UserChargedAccountFilter,
+        UserCategoryFilter,
         'include_payment_in_report',
         'user'
         ]
