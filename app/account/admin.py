@@ -114,7 +114,12 @@ class AccountAdmin(
         'include_account_in_report',
         'my_order'
         ]
-    list_filter = ['account_name', 'include_account_in_report', 'user']
+    list_filter = [
+        'account_name',
+        'currency',
+        'include_account_in_report',
+        'user'
+        ]
     search_fields = ['account_name', 'user']
     readonly_fields = [
         'balance',
