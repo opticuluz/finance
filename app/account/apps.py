@@ -10,6 +10,7 @@ class CurrencyConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'currency'
 
+
 class CurrencyHistoryConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'currency_history'

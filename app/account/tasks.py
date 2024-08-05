@@ -23,11 +23,13 @@ def update_all_data():
     )
     sync.delay()
 
+
 @app.task
 def get_currency_rates(test=False):
     if test:
-        rates_data = '''{"base": "EUR", "date": "2024-08-05", "rates": {"CAD": 1.518274, 
-        "EUR": 1, "GEL": 2.965777, "RSD": 117.024179, "RUB": 93.192269, "SEK": 11.529046, 
+        rates_data = '''{"base": "EUR", "date": "2024-08-05",
+        "rates": {"CAD": 1.518274, "EUR": 1, "GEL": 2.965777,
+        "RSD": 117.024179, "RUB": 93.192269, "SEK": 11.529046,
         "USD": 1.096389}, "success": true, "timestamp": 1722859384}'''
         data = json.loads(rates_data)
     else:
@@ -35,11 +37,13 @@ def get_currency_rates(test=False):
         fixer_url = config.FIXER_URL
         currency_titles = Currency.objects.values_list('title', flat=True)
         currency_titles_str = ','.join(currency_titles)
-        url = f'{fixer_url}?access_key={access_key}&symbols={currency_titles_str}'
+        url = f'{fixer_url}?access_key={access_key
+                                        }&symbols={currency_titles_str}'
         response = requests.get(url)
         data = response.json()
         LogEntry.objects.create(data=data)
     return data
+
 
 @app.task
 def calculate_currency_rate_in_base(data):
@@ -50,25 +54,25 @@ def calculate_currency_rate_in_base(data):
         for currency_title, rate_value in rates.items():
             currency_history = CurrencyHistory.objects.create(
                 title=currency_title,
-                rate_in_base = (
+                rate_in_base=(
                     Decimal(rate_value) / Decimal(rate_for_base)
                 ).quantize(
                         Decimal('0.00'),
                         rounding=ROUND_HALF_UP
                     ),
-                date_and_time = datetime.fromtimestamp(timestamp),
-                base_currency = config.BASE_CURRENCY
+                date_and_time=datetime.fromtimestamp(timestamp),
+                base_currency=config.BASE_CURRENCY
             )
             currency_history.save()
     else:
         pass
 
-### old task - delete in the future
+# old task - delete in the future
 
 # @app.task
 # def update_all_rates(data):
 #     rates = data.get('rates')
-    if rates:        
+    if rates:
         currency = Currency.objects.get(title=config.BASE_CURRENCY)
         currency.rate = rate_for_base
         currency.rate_in_base = 1
