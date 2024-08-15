@@ -11,6 +11,7 @@ from report.tasks import create_report
 from logs.models import LogEntry
 from payment.admin import update_payment_amount_in_base_currency
 from datetime import datetime
+from django.utils.timezone import make_aware
 
 
 @app.task
@@ -46,49 +47,64 @@ def get_currency_rates(test=False):
 
 
 @app.task
+def recalculate_rates_in_history():
+    data_list = LogEntry.objects.order_by('id').values_list('data', flat=True)
+    for data in data_list:
+        calculate_currency_rate_in_base(data)
+
+
+@app.task
 def calculate_currency_rate_in_base(data):
+    if not data.get('success'):
+        error_info = data.get('error', {}).get('info', 'Unknown error')
+        print(f"API Error: {error_info}")
+        return
     rates = data.get('rates')
-    rate_for_base = rates.pop(config.BASE_CURRENCY)
+    if not rates:
+        print("No rates data available")
+        return
+    rate_for_base = rates.get(config.BASE_CURRENCY)
+    if not rate_for_base:
+        print("Base currency not found in rates")
+        return
     timestamp = data.get('timestamp')
-    if rates:
-        for currency_title, rate_value in rates.items():
-            currency_history = CurrencyHistory.objects.create(
-                title=currency_title,
-                rate_in_base=(
-                    Decimal(rate_value) / Decimal(rate_for_base)
-                ).quantize(
-                        Decimal('0.00'),
-                        rounding=ROUND_HALF_UP
-                    ),
-                date_and_time=datetime.fromtimestamp(timestamp),
-                base_currency=config.BASE_CURRENCY
-            )
-            currency_history.save()
-    else:
-        pass
+    for currency_title, rate_value in rates.items():
+        rate_in_base = (
+            Decimal(rate_value) / Decimal(rate_for_base)
+        ).quantize(
+            Decimal('0.00'),
+            rounding=ROUND_HALF_UP
+        )
+        naive_datetime = datetime.fromtimestamp(timestamp)
+        aware_datetime = make_aware(naive_datetime)
+        CurrencyHistory.objects.update_or_create(
+            title=currency_title,
+            date_and_time=aware_datetime,
+            defaults={
+                'rate_in_base': rate_in_base,
+                'base_currency': config.BASE_CURRENCY
+            }
+        )
 
 # old task - delete in the future
 
 # @app.task
 # def update_all_rates(data):
 #     rates = data.get('rates')
-    if rates:
-        currency = Currency.objects.get(title=config.BASE_CURRENCY)
-        currency.rate = rate_for_base
-        currency.rate_in_base = 1
+    # currency = Currency.objects.get(title=config.BASE_CURRENCY)
+    # currency.rate = rate_for_base
+    # currency.rate_in_base = 1
+    # currency.save()
+    # for currency_title, rate_value in rates.items():
+    #     try:
+        currency = Currency.objects.get(title=currency_title)
+        currency.rate = rate_value
+        currency.rate_in_base = (
+            Decimal(currency.rate) / Decimal(rate_for_base)
+            )
         currency.save()
-        for currency_title, rate_value in rates.items():
-            try:
-                currency = Currency.objects.get(title=currency_title)
-                currency.rate = rate_value
-                currency.rate_in_base = (
-                    Decimal(currency.rate) / Decimal(rate_for_base)
-                    )
-                currency.save()
-            except Currency.DoesNotExist:
-                pass
-    else:
-        pass
+        # except Currency.DoesNotExist:
+        #     pass
 
 
 @app.task
