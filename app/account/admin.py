@@ -194,14 +194,12 @@ class CurrencyAdmin(admin.ModelAdmin):
         'title',
         'symbol',
         'rate_in_base',
-        'average_rate_in_base_for_month',
         'updated_at'
         ]
     search_fields = ['title']
     exclude = ('rate',)
     readonly_fields = [
         'rate_in_base',
-        'average_rate_in_base_for_month',
         'created_at',
         'updated_at'
         ]
