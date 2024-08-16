@@ -36,7 +36,7 @@ class CurrencyHistory(models.Model):
         verbose_name_plural = 'Currency history'
 
     date_and_time = models.DateTimeField()
-    title = models.CharField(max_length=3)
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     rate_in_base = models.DecimalField(
         max_digits=20,
         decimal_places=2,
@@ -48,7 +48,7 @@ class CurrencyHistory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'{self.title}: {self.rate_in_base}'
+        return f'{self.currency.title}: {self.rate_in_base}'
 
 
 class Account(models.Model):

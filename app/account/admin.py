@@ -209,19 +209,19 @@ admin.site.register(Currency, CurrencyAdmin)
 
 
 class CurrencyHistoryAdmin(admin.ModelAdmin):
-    ordering = ['-date_and_time', 'title']
+    ordering = ['-date_and_time', 'currency__title']
     list_display = [
         'date_and_time',
-        'title',
+        'currency',
         'rate_in_base',
         'base_currency',
         'updated_at'
         ]
-    list_filter = ['date_and_time', 'title']
+    list_filter = ['date_and_time', 'currency']
     search_fields = ['date_and_time']
     readonly_fields = [
         'date_and_time',
-        'title',
+        'currency',
         'rate_in_base',
         'base_currency',
         'created_at',

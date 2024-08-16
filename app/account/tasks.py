@@ -9,7 +9,7 @@ from account.currency_conversion import base_currency_rate
 from decimal import Decimal, ROUND_HALF_UP
 from report.tasks import create_report
 from logs.models import LogEntry
-from payment.admin import update_payment_amount_in_base_currency
+from payment.admin import calculate_amount_in_base_currency
 from datetime import datetime
 from django.utils.timezone import make_aware
 
@@ -20,6 +20,7 @@ def update_all_data():
         get_currency_rates.s(),
         calculate_currency_rate_in_base.s(),
         recalculate_balance_in_base_currency.si(),
+        recalculate_amount_in_base_currency.si(),
         create_report.si()
     )
     sync.delay()
@@ -77,8 +78,9 @@ def calculate_currency_rate_in_base(data):
         )
         naive_datetime = datetime.fromtimestamp(timestamp)
         aware_datetime = make_aware(naive_datetime)
+        currency_instance = Currency.objects.get(title=currency_title)
         CurrencyHistory.objects.update_or_create(
-            title=currency_title,
+            currency=currency_instance,
             date_and_time=aware_datetime,
             defaults={
                 'rate_in_base': rate_in_base,
@@ -156,11 +158,12 @@ def recalculate_balance_in_base_currency():
 
         account.save()
 
+
+@app.task
+def recalculate_amount_in_base_currency():
+
     payments = Payment.objects.all()
 
     for payment in payments:
-        update_payment_amount_in_base_currency(
-            sender=Payment,
-            instance=payment
-            )
+        calculate_amount_in_base_currency(payment)
         payment.save()
