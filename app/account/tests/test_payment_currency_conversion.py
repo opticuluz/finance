@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from decimal import Decimal
 from constance import config
 from constance.test import override_config
-from payment.admin import calculate_amount_in_base_currency
 
 
 class PaymentCurrencyTests(TestCase):
@@ -74,7 +73,6 @@ class PaymentCurrencyTests(TestCase):
             date='2023-12-22',
             user=self.user
         )
-        calculate_amount_in_base_currency(payment_1)
 
         payment_2 = Payment.objects.create(
             payment_type='income',
@@ -83,7 +81,6 @@ class PaymentCurrencyTests(TestCase):
             date='2023-12-23',
             user=self.user
         )
-        calculate_amount_in_base_currency(payment_2)
 
         payment_3 = Payment.objects.create(
             payment_type='income',
@@ -92,7 +89,6 @@ class PaymentCurrencyTests(TestCase):
             date='2023-12-23',
             user=self.user
         )
-        calculate_amount_in_base_currency(payment_3)
 
         self.assertEqual(payment_1.amount_in_base_currency, Decimal('2020.85'))
         self.assertEqual(payment_2.amount_in_base_currency, Decimal('40.95'))

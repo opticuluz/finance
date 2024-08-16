@@ -9,7 +9,7 @@ from account.currency_conversion import base_currency_rate
 from decimal import Decimal, ROUND_HALF_UP
 from report.tasks import create_report
 from logs.models import LogEntry
-from payment.admin import calculate_amount_in_base_currency
+from payment.models import calculate_amount_in_base_currency
 from datetime import datetime
 from django.utils.timezone import make_aware
 
@@ -101,9 +101,7 @@ def calculate_currency_rate_in_base(data):
     #     try:
         currency = Currency.objects.get(title=currency_title)
         currency.rate = rate_value
-        currency.rate_in_base = (
-            Decimal(currency.rate) / Decimal(rate_for_base)
-            )
+        currency.rate_in_base = rate_in_base
         currency.save()
         # except Currency.DoesNotExist:
         #     pass
