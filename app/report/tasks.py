@@ -2,8 +2,10 @@ from finance.celery import app
 from datetime import datetime
 from django.db.models import Sum, Q, Case, When, Value
 from django.db import models
-from report.models import Report
+from report.models import Report, Report_for_category
 from account.models import Account
+from payment.models import Payment
+from category.models import Category
 from user.models import User
 
 
@@ -12,10 +14,12 @@ def create_report(user_id=None):
 
     if user_id:
         create_report_for_user(user_id)
+        create_report_for_category_for_user(user_id)
     else:
         user_ids = User.objects.values_list('id', flat=True)
         for user_id in user_ids:
             create_report_for_user(user_id)
+            create_report_for_category_for_user(user_id)
 
 
 def create_report_for_user(user_id):
@@ -156,3 +160,63 @@ def create_report_for_user(user_id):
             expenses_in_current_year=expenses_year
         )
         report.save()
+
+
+def create_report_for_category_for_user(user_id):
+
+    user = User.objects.get(id=user_id)
+
+    current_month_start = datetime.now().replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+        )
+
+    payments = Payment.objects.filter(
+        include_payment_in_report=True,
+        user=user_id,
+        date__gte=current_month_start
+        )
+
+    if not payments:
+        report_for_category = Report_for_category.objects.filter(
+            user=user,
+            created_at__year=current_month_start.year,
+            created_at__month=current_month_start.month
+        ).last()
+
+        if report_for_category:
+            report_for_category.changes_in_category_for_current_month = 0
+            report_for_category.save()
+        else:
+            return
+
+    categories_report = payments.values('category').annotate(
+        total_amount=Sum('amount_in_base_currency')
+    )
+
+    for category_report in categories_report:
+        category_id = category_report['category']
+        total_amount = category_report['total_amount']
+
+        category = Category.objects.get(id=category_id)
+        report_for_category = Report_for_category.objects.filter(
+            user=user,
+            category=category,
+            created_at__year=current_month_start.year,
+            created_at__month=current_month_start.month
+        ).last()
+
+        if report_for_category:
+            report_for_category.changes_in_category_for_current_month \
+                = total_amount
+            report_for_category.save()
+        else:
+            report_for_category = Report_for_category.objects.create(
+                user=user,
+                category=category,
+                changes_in_category_for_current_month=total_amount
+            )
+            report_for_category.save()
