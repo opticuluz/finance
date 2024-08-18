@@ -13,15 +13,6 @@ from django.db import transaction
 @app.task
 def create_report(user_id=None):
 
-    # if user_id:
-    #     create_report_for_user(user_id)
-    #     create_report_for_category_for_user(user_id)
-    # else:
-    #     user_ids = User.objects.values_list('id', flat=True)
-    #     for user_id in user_ids:
-    #         create_report_for_user(user_id)
-    #         create_report_for_category_for_user(user_id)
-
     if user_id:
         with transaction.atomic():
             User.objects.select_for_update().get(id=user_id)
