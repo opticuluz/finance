@@ -1,5 +1,5 @@
 from django.test import TestCase, override_settings
-from account.models import Account, Currency
+from account.models import Account, Currency, CurrencyHistory
 from payment.models import Payment
 from django.contrib.auth import get_user_model
 from decimal import Decimal
@@ -20,16 +20,31 @@ class PaymentCurrencyTests(TestCase):
             rate=Decimal('1.091685'),
             rate_in_base=Decimal('1')
             )
+        self.currency_history_usd = CurrencyHistory.objects.create(
+            date_and_time='2023-12-22 10:59:04+00:00',
+            currency=self.currency_usd,
+            rate_in_base=Decimal('1')
+            )
         self.currency_gel = Currency.objects.create(
             title='GEL',
             symbol='₾',
             rate=Decimal('2.937159'),
             rate_in_base=Decimal('2.69')
             )
+        self.currency_history_gel = CurrencyHistory.objects.create(
+            date_and_time='2023-08-16 10:59:04+00:00',
+            currency=self.currency_gel,
+            rate_in_base=Decimal('2.69')
+            )
         self.currency_rub = Currency.objects.create(
             title='RUB',
             symbol='₽',
             rate=Decimal('98.824810'),
+            rate_in_base=Decimal('90.53')
+            )
+        self.currency_history_rub = CurrencyHistory.objects.create(
+            date_and_time='2023-08-16 10:59:04+00:00',
+            currency=self.currency_rub,
             rate_in_base=Decimal('90.53')
             )
         self.account_A = Account.objects.create(

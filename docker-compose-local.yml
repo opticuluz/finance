@@ -4,6 +4,7 @@ services:
       context: .
       args:
         - DEV=true
+    restart: always
     ports:
       - "8000:8000"
     volumes:
@@ -12,6 +13,7 @@ services:
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py wait_for_db &&
+             python manage.py makemigrations --noinput &&
              python manage.py migrate && 
              python manage.py runserver 0.0.0.0:8000"
     environment:
@@ -30,6 +32,7 @@ services:
 
   db:
     image: postgres:15-alpine
+    restart: always
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -40,6 +43,7 @@ services:
 
   redis:
     image: redis:7.0-alpine
+    restart: always
     volumes:
       - redis-data:/data
     container_name: finance_redis
@@ -47,6 +51,7 @@ services:
   celery-beat: &celery
     build:
       context: .
+    restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
       - DB_HOST=db
@@ -56,7 +61,7 @@ services:
       - REDIS_HOST=redis
       - DJANGO_ALLOWED_HOSTS=${DOMAIN}
     volumes:
-      - ./app:/app
+      - ./app:/app:consistent,uid=1000,gid=1000
     depends_on:
       - redis
       - db

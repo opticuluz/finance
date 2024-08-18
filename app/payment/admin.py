@@ -10,9 +10,12 @@ from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
 from account.currency_conversion import base_currency_rate
-from account.models import Account
+from account.models import Account  # CurrencyHistory
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
+# from django.db.models import Avg
+# from django.db.models.functions import TruncDate
+# from datetime import datetime
 
 
 class UserChargedAccountFilter(SimpleListFilter):
@@ -127,40 +130,68 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         else:
             obj.user = request.user
 
-        post_save.send(
-            sender=Payment,
-            instance=obj,
-            dispatch_uid="update_payment_amount_in_base_currency"
-            )
+        # post_save.send(
+        #     sender=Payment,
+        #     instance=obj,
+        #     dispatch_uid="update_payment_amount_in_base_currency"
+        #     )
+        # calculate_amount_in_base_currency(obj)
 
         super().save_model(request, obj, form, change)
 
 
-def calculate_amount_in_base_currency(instance, **kwargs):
-    rate = base_currency_rate()
-    base_currency = config.BASE_CURRENCY
-    if rate is not None:
-        if instance.charged_account.currency.title == base_currency:
-            instance.amount_in_base_currency = instance.amount
-        else:
-            amount_in_base_currency = Decimal(
-                instance.amount
-                /
-                instance.charged_account.currency.rate_in_base
-                )
-            rounded_amount = amount_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.amount_in_base_currency = rounded_amount
-    else:
-        return None  # Вернуть None вместо вывода предупреждения
-        # messages.warning(
-        #     # request,
-        #     _("Rate not found for %(currency)s")
-        #     %
-        #     {'currency': base_currency}
-        # )
+# def calculate_amount_in_base_currency(instance, **kwargs):
+#     instance_datetime = datetime.combine(instance.date, datetime.min.time())
+#     transaction_date = timezone.make_aware(instance_datetime)
+#     currency_histories = CurrencyHistory.objects.annotate(
+#         date_only=TruncDate('date_and_time')
+#         ).filter(
+#             currency__title=instance.charged_account.currency.title,
+#             date_only=TruncDate(transaction_date)
+#         )
+#     if currency_histories.exists():
+#         average_rate = (currency_histories.aggregate(Avg('rate_in_base'))
+#                         ['rate_in_base__avg']).quantize(
+#                 Decimal('0.00'),
+#                 rounding=ROUND_HALF_UP
+#                 )
+#     else:
+#         latest_currency_history = CurrencyHistory.objects.filter(
+#             currency__title=instance.charged_account.currency.title,
+#             date_and_time__lt=transaction_date
+#         ).order_by('-date_and_time').first()
+#         if latest_currency_history:
+#             average_rate = latest_currency_history.rate_in_base
+#         else:
+#             first_currency_history = CurrencyHistory.objects.filter(
+#                 currency__title=instance.charged_account.currency.title
+#             ).order_by('date_and_time').first()
+#             average_rate = first_currency_history.rate_in_base
+
+#     rate = base_currency_rate()
+#     base_currency = config.BASE_CURRENCY
+#     if rate is not None:
+#         if instance.charged_account.currency.title == base_currency:
+#             instance.amount_in_base_currency = instance.amount
+#         else:
+#             amount_in_base_currency = Decimal(
+#                 instance.amount
+#                 /
+#                 average_rate
+#                 )
+#             rounded_amount = amount_in_base_currency.quantize(
+#                 Decimal('0.00'),
+#                 rounding=ROUND_HALF_UP
+#                 )
+#             instance.amount_in_base_currency = rounded_amount
+#     else:
+#         return None  # Вернуть None вместо вывода предупреждения
+#         # messages.warning(
+#         #     # request,
+#         #     _("Rate not found for %(currency)s")
+#         #     %
+#         #     {'currency': base_currency}
+#         # )
 
 
 def calculate_balance_in_base_currency(instance, **kwargs):
@@ -326,17 +357,17 @@ post_save.connect(update_account_balance, sender=Payment)
 post_delete.connect(update_account_balance, sender=Payment)
 
 
-@receiver(
-    [post_save],
-    sender=Payment,
-    dispatch_uid="update_payment_amount_in_base_currency"
-    )
-def update_payment_amount_in_base_currency(sender, instance, **kwargs):
+# @receiver(
+#     [post_save],
+#     sender=Payment,
+#     dispatch_uid="update_payment_amount_in_base_currency"
+#     )
+# def update_payment_amount_in_base_currency(sender, instance, **kwargs):
 
-    calculate_amount_in_base_currency(instance=instance)
+#     calculate_amount_in_base_currency(instance=instance)
 
 
-post_save.connect(update_payment_amount_in_base_currency, sender=Payment)
+# post_save.connect(update_payment_amount_in_base_currency, sender=Payment)
 
 
 admin.site.register(Payment, PaymentAdmin)
