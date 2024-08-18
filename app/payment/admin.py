@@ -353,8 +353,8 @@ def update_account_balance(sender, instance, **kwargs):
             targed_account.save()
 
 
-post_save.connect(update_account_balance, sender=Payment)
-post_delete.connect(update_account_balance, sender=Payment)
+# post_save.connect(update_account_balance, sender=Payment)
+# post_delete.connect(update_account_balance, sender=Payment)
 
 
 # @receiver(

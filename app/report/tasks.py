@@ -7,19 +7,33 @@ from account.models import Account
 from payment.models import Payment
 from category.models import Category
 from user.models import User
+from django.db import transaction
 
 
 @app.task
 def create_report(user_id=None):
 
+    # if user_id:
+    #     create_report_for_user(user_id)
+    #     create_report_for_category_for_user(user_id)
+    # else:
+    #     user_ids = User.objects.values_list('id', flat=True)
+    #     for user_id in user_ids:
+    #         create_report_for_user(user_id)
+    #         create_report_for_category_for_user(user_id)
+
     if user_id:
-        create_report_for_user(user_id)
-        create_report_for_category_for_user(user_id)
+        with transaction.atomic():
+            User.objects.select_for_update().get(id=user_id)
+            create_report_for_user(user_id)
+            create_report_for_category_for_user(user_id)
     else:
         user_ids = User.objects.values_list('id', flat=True)
         for user_id in user_ids:
-            create_report_for_user(user_id)
-            create_report_for_category_for_user(user_id)
+            with transaction.atomic():
+                User.objects.select_for_update().get(id=user_id)
+                create_report_for_user(user_id)
+                create_report_for_category_for_user(user_id)
 
 
 def create_report_for_user(user_id):
@@ -201,7 +215,10 @@ def create_report_for_category_for_user(user_id):
         category_id = category_report['category']
         total_amount = category_report['total_amount']
 
-        category = Category.objects.get(id=category_id)
+        if category_id is not None:
+            category = Category.objects.get(id=category_id)
+        else:
+            category = None
         report_for_category = Report_for_category.objects.filter(
             user=user,
             category=category,
