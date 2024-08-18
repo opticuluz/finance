@@ -183,7 +183,7 @@ def create_report_for_category_for_user(user_id):
         include_payment_in_report=True,
         user=user_id,
         date__gte=current_month_start
-        )
+        ).exclude(payment_type='transfer')
 
     if not payments:
         report_for_category = Report_for_category.objects.filter(
