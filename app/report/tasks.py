@@ -1,5 +1,5 @@
 from finance.celery import app
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Sum, Q, Case, When, Value
 from django.db import models
 from report.models import Report, Report_for_category
@@ -179,24 +179,41 @@ def create_report_for_category_for_user(user_id):
         microsecond=0
         )
 
+    one_year_start = (datetime.now() - timedelta(days=365)).replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+        )
+
     payments = Payment.objects.filter(
         include_payment_in_report=True,
         user=user_id,
         date__gte=current_month_start
         ).exclude(payment_type='transfer')
 
-    if not payments:
-        report_for_category = Report_for_category.objects.filter(
-            user=user,
-            created_at__year=current_month_start.year,
-            created_at__month=current_month_start.month
-        ).last()
+    # if not payments:
+    #     report_for_category = Report_for_category.objects.filter(
+    #         user=user,
+    #         created_at__year=current_month_start.year,
+    #         created_at__month=current_month_start.month
+    #     ).last()
 
-        if report_for_category:
-            report_for_category.changes_in_category_for_current_month = 0
-            report_for_category.save()
-        else:
-            return
+    #     if report_for_category:
+    #         report_for_category.changes_in_category_for_current_month = 0
+    #         payments_for_year = Payment.objects.filter(
+    #             include_payment_in_report=True,
+    #             user=user_id,
+    #             date__gte=one_year_start,
+    #             category_id=category_id
+    #         ).exclude(payment_type='transfer')
+    #         sum_payments = payments_for_year.aggregate(
+    #             total_amount=Sum('amount_in_base_currency')
+    #         )['total_amount'] or 0.0
+    #         report_for_category.save()
+    #     else:
+    #         return
 
     categories_report = payments.values('category').annotate(
         total_amount=Sum('amount_in_base_currency')
@@ -208,8 +225,26 @@ def create_report_for_category_for_user(user_id):
 
         if category_id is not None:
             category = Category.objects.get(id=category_id)
+            payments_for_year = Payment.objects.filter(
+                include_payment_in_report=True,
+                user=user_id,
+                date__gte=one_year_start,
+                category_id=category_id
+            ).exclude(payment_type='transfer')
+            sum_payments = payments_for_year.aggregate(
+                total_amount=Sum('amount_in_base_currency')
+            )['total_amount'] or 0.0
         else:
             category = None
+            payments_for_year = Payment.objects.filter(
+                include_payment_in_report=True,
+                user=user_id,
+                date__gte=one_year_start,
+                category_id=None
+            ).exclude(payment_type='transfer')
+            sum_payments = payments_for_year.aggregate(
+                total_amount=Sum('amount_in_base_currency')
+            )['total_amount'] or 0.0
         report_for_category = Report_for_category.objects.filter(
             user=user,
             category=category,
@@ -220,11 +255,13 @@ def create_report_for_category_for_user(user_id):
         if report_for_category:
             report_for_category.changes_in_category_for_current_month \
                 = total_amount
+            report_for_category.average_for_year = sum_payments / 12
             report_for_category.save()
         else:
             report_for_category = Report_for_category.objects.create(
                 user=user,
                 category=category,
-                changes_in_category_for_current_month=total_amount
+                changes_in_category_for_current_month=total_amount,
+                average_for_year=sum_payments / 12
             )
             report_for_category.save()

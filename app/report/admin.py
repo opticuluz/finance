@@ -54,6 +54,7 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'created_at',
         'category',
         'changes_in_category_for_current_month',
+        'average_for_year',
         'updated_at'
         ]
     list_filter = ['created_at', UserCategoryFilter, 'user']
@@ -62,6 +63,7 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'user',
         'category',
         'changes_in_category_for_current_month',
+        'average_for_year',
         'created_at',
         'updated_at'
     ]

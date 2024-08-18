@@ -107,6 +107,13 @@ class Report_for_category(models.Model):
         blank=True,
         null=True
         )
+    average_for_year = models.DecimalField(
+        default=0.0,
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
