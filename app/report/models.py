@@ -1,7 +1,8 @@
-from django.db import models
+from django.db import models, transaction, IntegrityError
 from django.conf import settings
 from constance import config
 from category.models import Category
+from django.utils import timezone
 
 
 class Report(models.Model):
@@ -62,6 +63,26 @@ class Report(models.Model):
     def __str__(self):
         return f"Report for {self.user.email} in {config.BASE_CURRENCY}"
 
+    def save(self, *args, **kwargs):
+        if not self.created_at:
+            self.created_at = timezone.now()
+        year = self.created_at.year
+        month = self.created_at.month
+
+        try:
+            with transaction.atomic():
+                if Report.objects.select_for_update().filter(
+                        user=self.user,
+                        created_at__year=year,
+                        created_at__month=month
+                        ).exclude(id=self.id).exists():
+                    raise IntegrityError('Duplicate entry detected.')
+        except IntegrityError:
+            # Логирование или просто игнорирование
+            pass
+
+        super().save(*args, **kwargs)
+
 
 class Report_for_category(models.Model):
 
@@ -87,3 +108,24 @@ class Report_for_category(models.Model):
     def __str__(self):
         return f'Report for category "{self.category}" for {self.user.email} \
 in {config.BASE_CURRENCY}'
+
+    def save(self, *args, **kwargs):
+        if not self.created_at:
+            self.created_at = timezone.now()
+        year = self.created_at.year
+        month = self.created_at.month
+
+        try:
+            with transaction.atomic():
+                if Report_for_category.objects.select_for_update().filter(
+                        user=self.user,
+                        category=self.category,
+                        created_at__year=year,
+                        created_at__month=month
+                        ).exclude(id=self.id).exists():
+                    raise IntegrityError('Duplicate entry detected.')
+        except IntegrityError:
+            # Логирование или просто игнорирование
+            pass
+
+        super().save(*args, **kwargs)
