@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import Client
 from report.models import Report
+from django.utils import timezone
 
 
 class ReportAdminSiteTests(TestCase):
@@ -20,7 +21,7 @@ class ReportAdminSiteTests(TestCase):
             name='Test User'
         )
         self.report = Report.objects.create(
-            created_at='2023-07-20 16:24:45.13242+00',
+            created_at=timezone.now(),
             user=self.user,
             income_in_current_month='2020.00',
             expenses_in_current_month='1548.27',

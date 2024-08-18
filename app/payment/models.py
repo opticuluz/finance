@@ -1,7 +1,14 @@
 from django.db import models
 from django.conf import settings
-from account.models import Account
+from account.models import Account, CurrencyHistory
 from category.models import Category
+from django.db.models import Avg
+from django.db.models.functions import TruncDate
+from datetime import datetime
+from django.utils import timezone
+from decimal import Decimal, ROUND_HALF_UP
+from account.currency_conversion import base_currency_rate
+from constance import config
 
 
 PAYMENT_TYPE_CHOICES = [
@@ -61,4 +68,59 @@ class Payment(models.Model):
 
     def save(self, *args, **kwargs):
         self.full_clean()
+        calculate_amount_in_base_currency(self)
         super().save(*args, **kwargs)
+
+
+def calculate_amount_in_base_currency(instance, **kwargs):
+    instance_datetime = datetime.combine(instance.date, datetime.min.time())
+    transaction_date = timezone.make_aware(instance_datetime)
+    currency_histories = CurrencyHistory.objects.annotate(
+        date_only=TruncDate('date_and_time')
+        ).filter(
+            currency__title=instance.charged_account.currency.title,
+            date_only=TruncDate(transaction_date)
+        )
+    if currency_histories.exists():
+        average_rate = (currency_histories.aggregate(Avg('rate_in_base'))
+                        ['rate_in_base__avg']).quantize(
+                Decimal('0.00'),
+                rounding=ROUND_HALF_UP
+                )
+    else:
+        latest_currency_history = CurrencyHistory.objects.filter(
+            currency__title=instance.charged_account.currency.title,
+            date_and_time__lt=transaction_date
+        ).order_by('-date_and_time').first()
+        if latest_currency_history:
+            average_rate = latest_currency_history.rate_in_base
+        else:
+            first_currency_history = CurrencyHistory.objects.filter(
+                currency__title=instance.charged_account.currency.title
+            ).order_by('date_and_time').first()
+            average_rate = first_currency_history.rate_in_base
+
+    rate = base_currency_rate()
+    base_currency = config.BASE_CURRENCY
+    if rate is not None:
+        if instance.charged_account.currency.title == base_currency:
+            instance.amount_in_base_currency = instance.amount
+        else:
+            amount_in_base_currency = Decimal(
+                instance.amount
+                /
+                average_rate
+                )
+            rounded_amount = amount_in_base_currency.quantize(
+                Decimal('0.00'),
+                rounding=ROUND_HALF_UP
+                )
+            instance.amount_in_base_currency = rounded_amount
+    else:
+        return None  # Вернуть None вместо вывода предупреждения
+        # messages.warning(
+        #     # request,
+        #     _("Rate not found for %(currency)s")
+        #     %
+        #     {'currency': base_currency}
+        # )

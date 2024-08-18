@@ -1,6 +1,9 @@
 from django.contrib import admin
-from .models import Report
+from .models import Report, Report_for_category
 from user.mixins import UserRestrictedAdminMixin
+from payment.admin import UserCategoryFilter
+from django.db.models import F
+from django.db.models.functions import TruncMonth
 
 
 class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -31,3 +34,37 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
 
 admin.site.register(Report, ReportAdmin)
+
+
+class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+
+    ordering = None
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.annotate(
+            created_at_month=TruncMonth(F('created_at'))
+        )
+        return qs.order_by(
+            '-created_at_month',
+            '-changes_in_category_for_current_month'
+            )
+
+    list_display = [
+        'created_at',
+        'category',
+        'changes_in_category_for_current_month',
+        'updated_at'
+        ]
+    list_filter = ['created_at', UserCategoryFilter, 'user']
+    search_fields = ['category']
+    readonly_fields = [
+        'user',
+        'category',
+        'changes_in_category_for_current_month',
+        'created_at',
+        'updated_at'
+    ]
+
+
+admin.site.register(Report_for_category, ReportCategoryAdmin)

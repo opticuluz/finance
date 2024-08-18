@@ -2,8 +2,9 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import Client
-from account.models import Account, Currency
+from account.models import Account, Currency, CurrencyHistory
 from payment.models import Payment
+from decimal import Decimal
 
 
 class PaymentAdminSiteTests(TestCase):
@@ -21,6 +22,11 @@ class PaymentAdminSiteTests(TestCase):
             name='Test User'
         )
         self.currency_gel = Currency.objects.create(title='GEL', symbol='₾')
+        self.currency_history_gel = CurrencyHistory.objects.create(
+            date_and_time='2023-08-16 10:59:04+00:00',
+            currency=self.currency_gel,
+            rate_in_base=Decimal('2.69')
+            )
         self.account_A = Account.objects.create(
             account_name='A',
             currency=self.currency_gel,
