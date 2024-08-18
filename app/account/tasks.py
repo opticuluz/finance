@@ -7,7 +7,6 @@ import requests
 from constance import config
 from account.currency_conversion import base_currency_rate
 from decimal import Decimal, ROUND_HALF_UP
-from report.tasks import create_report
 from logs.models import LogEntry
 from payment.models import calculate_amount_in_base_currency
 from datetime import datetime
@@ -19,9 +18,7 @@ def update_all_data():
     sync = celery.chain(
         get_currency_rates.s(),
         calculate_currency_rate_in_base.s(),
-        recalculate_balance_in_base_currency.si(),
         recalculate_amount_in_base_currency.si(),
-        create_report.si()
     )
     sync.delay()
 

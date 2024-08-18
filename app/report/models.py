@@ -94,7 +94,12 @@ class Report_for_category(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
         )
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE
+        )
     changes_in_category_for_current_month = models.DecimalField(
         default=0.0,
         max_digits=20,
