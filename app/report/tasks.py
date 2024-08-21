@@ -198,6 +198,16 @@ def create_report_for_category_for_user(user_id):
         microsecond=0
         )
 
+    # current_month_start = datetime.now().replace(
+    #     year=2024,
+    #     month=8,
+    #     day=1,
+    #     hour=0,
+    #     minute=0,
+    #     second=0,
+    #     microsecond=0
+    #     )
+
     month_to_process = first_payment_date.replace(day=1)
 
     while month_to_process <= current_month_start.date():
@@ -205,6 +215,79 @@ def create_report_for_category_for_user(user_id):
         one_year_start = (
             month_to_process - relativedelta(years=1)
             ).replace(day=1)
+
+        categories = Category.objects.filter(user=user_id)
+
+        for category in categories:
+            report_for_category = Report_for_category.objects.filter(
+                user=user,
+                category=category,
+                created_at__year=month_to_process.year,
+                created_at__month=month_to_process.month
+            ).last()
+
+            # payments_for_year = Payment.objects.filter(
+            #     include_payment_in_report=True,
+            #     user=user_id,
+            #     date__gte=one_year_start,
+            #     date__lt=one_year_start + relativedelta(months=13),
+            #     category_id=category
+            #     ).exclude(payment_type='transfer'),
+            # sum_payments = payments_for_year.aggregate(
+            #     total_amount=Sum('amount_in_base_currency')
+            #     )['total_amount'] or 0.0
+
+            if not report_for_category:
+                # Если отчёт не найден, создайте новый с нулевыми значениями
+                report_for_category = Report_for_category.objects.create(
+                    user=user,
+                    category=category,
+                    changes_in_category_for_current_month=0,
+
+                    # average_for_year=sum_payments / 12,
+                    average_for_year=0
+                )
+                report_for_category.save()
+            else:
+                # Если отчёт найден, можно обновить его, если требуется
+                # например, оставить его как есть или изменить на основе
+                # других данных
+                pass
+
+        report_for_None_category = Report_for_category.objects.filter(
+                user=user,
+                category=None,
+                created_at__year=month_to_process.year,
+                created_at__month=month_to_process.month
+            ).last()
+
+        # payments_for_year = Payment.objects.filter(
+        #     include_payment_in_report=True,
+        #     user=user_id,
+        #     date__gte=one_year_start,
+        #     date__lt=one_year_start + relativedelta(months=13),
+        #     category_id=category
+        #     ).exclude(payment_type='transfer'),
+        # sum_payments_None_category = payments_for_year.aggregate(
+        #     total_amount=Sum('amount_in_base_currency')
+        #     )['total_amount'] or 0.0
+
+        if not report_for_None_category:
+            # Если отчёт не найден, создайте новый с нулевыми значениями
+            report_for_None_category = Report_for_category.objects.create(
+                user=user,
+                category=None,
+                changes_in_category_for_current_month=0,
+
+                # average_for_year=sum_payments_None_category / 12
+                average_for_year=0
+            )
+            report_for_None_category.save()
+        else:
+            # Если отчёт найден, можно обновить его, если требуется
+            # например, оставить его как есть или изменить на основе
+            # других данных
+            pass
 
         payments = Payment.objects.filter(
             include_payment_in_report=True,
