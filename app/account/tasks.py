@@ -11,6 +11,8 @@ from logs.models import LogEntry
 from payment.models import calculate_amount_in_base_currency
 from datetime import datetime
 from django.utils.timezone import make_aware
+from report.tasks import create_report
+from django.db import transaction
 
 
 @app.task
@@ -19,6 +21,8 @@ def update_all_data():
         get_currency_rates.s(),
         calculate_currency_rate_in_base.s(),
         recalculate_amount_in_base_currency.si(),
+        recalculate_balance_in_base_currency.si(),
+        create_report.si()
     )
     sync.delay()
 
@@ -29,7 +33,7 @@ def get_currency_rates(test=False):
         rates_data = '''{"base": "EUR", "date": "2024-08-05",
         "rates": {"CAD": 1.518274, "EUR": 1, "GEL": 2.965777,
         "RSD": 117.024179, "RUB": 93.192269, "SEK": 11.529046,
-        "USD": 1.096389}, "success": true, "timestamp": 1722859384}'''
+        "USD": 1.096389}, "success": true, "timestamp": 1723912853}'''
         data = json.loads(rates_data)
     else:
         access_key = config.FIXER_ACCESS_KEY
@@ -109,49 +113,101 @@ def recalculate_balance_in_base_currency():
 
     accounts = Account.objects.all()
 
-    for account in accounts:
-        if account.currency.title == config.BASE_CURRENCY:
-            account.balance_in_base_currency = account.balance
-        else:
-            rate = account.currency.rate
-            if rate is None:
-                account.balance_in_base_currency = Decimal('0.0')
-            else:
-                rate = Decimal(base_currency_rate()) / rate
-                account.balance_in_base_currency = Decimal(
-                    account.balance
-                    ) * rate
-
-        if account.credit_card_limit != Decimal('0.0'):
-            account.available_balance = (
-                Decimal(account.balance) + account.credit_card_limit
-                )
+    with transaction.atomic():
+        for account in accounts:
             if account.currency.title == config.BASE_CURRENCY:
-                account.credit_card_limit_in_base_currency = (
-                    account.credit_card_limit
-                )
-                account.available_balance_in_base_currency = (
-                    account.available_balance
-                )
+                # account.balance_in_base_currency = account.balance
+                Account.objects.filter(id=account.id).update(
+                    balance_in_base_currency=account.balance
+                    )
             else:
                 rate = account.currency.rate
                 if rate is None:
-                    account.credit_card_limit_in_base_currency = Decimal('0.0')
-                    account.available_balance_in_base_currency = Decimal('0.0')
+                    # account.balance_in_base_currency = Decimal('0.0')
+                    Account.objects.filter(id=account.id).update(
+                        balance_in_base_currency=Decimal('0.0')
+                        )
                 else:
                     rate = Decimal(base_currency_rate()) / rate
-                    account.credit_card_limit_in_base_currency = (
-                        Decimal(account.credit_card_limit) * rate
-                        )
-                    account.available_balance_in_base_currency = (
-                        Decimal(account.available_balance) * rate
-                        )
-        else:
-            account.available_balance = 0
-            account.credit_card_limit_in_base_currency = 0
-            account.available_balance_in_base_currency = 0
+                    # account.balance_in_base_currency = Decimal(
+                    #     account.balance
+                    #     ) * rate
+                    Account.objects.filter(id=account.id).update(
+                        balance_in_base_currency=Decimal(
+                            account.balance
+                        ) * rate
+                    )
 
-        account.save()
+            if account.credit_card_limit != Decimal('0.0'):
+                # account.available_balance = (
+                #     Decimal(account.balance) + account.credit_card_limit
+                #     )
+                Account.objects.filter(id=account.id).update(
+                    available_balance=(
+                        Decimal(account.balance) + account.credit_card_limit
+                    )
+                )
+                if account.currency.title == config.BASE_CURRENCY:
+                    # account.credit_card_limit_in_base_currency = (
+                    #     account.credit_card_limit
+                    # )
+                    Account.objects.filter(id=account.id).update(
+                        credit_card_limit_in_base_currency=(
+                            account.credit_card_limit
+                        )
+                    )
+                    # account.available_balance_in_base_currency = (
+                    #     account.available_balance
+                    # )
+                    Account.objects.filter(id=account.id).update(
+                        available_balance_in_base_currency=(
+                            account.available_balance
+                        )
+                    )
+                else:
+                    rate = account.currency.rate
+                    if rate is None:
+                        # account.credit_card_limit_in_base_currency = \
+                        # Decimal('0.0')
+                        Account.objects.filter(id=account.id).update(
+                            credit_card_limit_in_base_currency=Decimal('0.0')
+                            )
+                        # account.available_balance_in_base_currency = \
+                        # Decimal('0.0')
+                        Account.objects.filter(id=account.id).update(
+                            available_balance_in_base_currency=Decimal('0.0')
+                            )
+                    else:
+                        rate = Decimal(base_currency_rate()) / rate
+                        # account.credit_card_limit_in_base_currency = (
+                        #     Decimal(account.credit_card_limit) * rate
+                        #     )
+                        Account.objects.filter(id=account.id).update(
+                            credit_card_limit_in_base_currency=(
+                                Decimal(account.credit_card_limit) * rate
+                            )
+                        )
+                        # account.available_balance_in_base_currency = (
+                        #     Decimal(account.available_balance) * rate
+                        #     )
+                        Account.objects.filter(id=account.id).update(
+                            available_balance_in_base_currency=(
+                                Decimal(account.available_balance) * rate
+                            )
+                        )
+            else:
+                # account.available_balance = 0
+                Account.objects.filter(id=account.id).update(
+                    available_balance=0
+                    )
+                # account.credit_card_limit_in_base_currency = 0
+                Account.objects.filter(id=account.id).update(
+                    credit_card_limit_in_base_currency=0
+                    )
+                # account.available_balance_in_base_currency = 0
+                Account.objects.filter(id=account.id).update(
+                    available_balance_in_base_currency=0
+                    )
 
 
 @app.task
@@ -159,6 +215,6 @@ def recalculate_amount_in_base_currency():
 
     payments = Payment.objects.all()
 
-    for payment in payments:
-        calculate_amount_in_base_currency(payment)
-        payment.save()
+    with transaction.atomic():
+        for payment in payments:
+            calculate_amount_in_base_currency(payment)

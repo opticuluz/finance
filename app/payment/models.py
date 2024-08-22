@@ -105,6 +105,9 @@ def calculate_amount_in_base_currency(instance, **kwargs):
     if rate is not None:
         if instance.charged_account.currency.title == base_currency:
             instance.amount_in_base_currency = instance.amount
+            Payment.objects.filter(id=instance.id).update(
+                amount_in_base_currency=instance.amount
+                )
         else:
             amount_in_base_currency = Decimal(
                 instance.amount
@@ -116,6 +119,9 @@ def calculate_amount_in_base_currency(instance, **kwargs):
                 rounding=ROUND_HALF_UP
                 )
             instance.amount_in_base_currency = rounded_amount
+            Payment.objects.filter(id=instance.id).update(
+                amount_in_base_currency=rounded_amount
+                )
     else:
         return None  # Вернуть None вместо вывода предупреждения
         # messages.warning(
