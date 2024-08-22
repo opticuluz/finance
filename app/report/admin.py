@@ -47,7 +47,8 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         )
         return qs.order_by(
             '-created_at_month',
-            '-changes_in_category_for_current_month'
+            '-changes_in_category_for_current_month',
+            '-average_for_year'
             )
 
     list_display = [

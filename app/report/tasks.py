@@ -36,9 +36,13 @@ def create_report_for_user(user_id):
 
     user = User.objects.get(id=user_id)
 
-    first_payment_date = Payment.objects.filter(
+    first_payment = Payment.objects.filter(
         user=user_id
-    ).order_by('date').first().date
+        ).order_by('date').first()
+    if first_payment:
+        first_payment_date = first_payment.date
+    else:
+        return
 
     current_month_start = datetime.now().replace(
         day=1,
@@ -186,9 +190,13 @@ def create_report_for_category_for_user(user_id):
 
     user = User.objects.get(id=user_id)
 
-    first_payment_date = Payment.objects.filter(
+    first_payment = Payment.objects.filter(
         user=user_id
-    ).order_by('date').first().date
+        ).order_by('date').first()
+    if first_payment:
+        first_payment_date = first_payment.date
+    else:
+        return
 
     current_month_start = datetime.now().replace(
         day=1,
@@ -197,16 +205,6 @@ def create_report_for_category_for_user(user_id):
         second=0,
         microsecond=0
         )
-
-    # current_month_start = datetime.now().replace(
-    #     year=2024,
-    #     month=8,
-    #     day=1,
-    #     hour=0,
-    #     minute=0,
-    #     second=0,
-    #     microsecond=0
-    #     )
 
     month_to_process = first_payment_date.replace(day=1)
 
@@ -226,32 +224,15 @@ def create_report_for_category_for_user(user_id):
                 created_at__month=month_to_process.month
             ).last()
 
-            # payments_for_year = Payment.objects.filter(
-            #     include_payment_in_report=True,
-            #     user=user_id,
-            #     date__gte=one_year_start,
-            #     date__lt=one_year_start + relativedelta(months=13),
-            #     category_id=category
-            #     ).exclude(payment_type='transfer'),
-            # sum_payments = payments_for_year.aggregate(
-            #     total_amount=Sum('amount_in_base_currency')
-            #     )['total_amount'] or 0.0
-
             if not report_for_category:
-                # Если отчёт не найден, создайте новый с нулевыми значениями
                 report_for_category = Report_for_category.objects.create(
                     user=user,
                     category=category,
                     changes_in_category_for_current_month=0,
-
-                    # average_for_year=sum_payments / 12,
                     average_for_year=0
                 )
                 report_for_category.save()
             else:
-                # Если отчёт найден, можно обновить его, если требуется
-                # например, оставить его как есть или изменить на основе
-                # других данных
                 pass
 
         report_for_None_category = Report_for_category.objects.filter(
@@ -261,113 +242,52 @@ def create_report_for_category_for_user(user_id):
                 created_at__month=month_to_process.month
             ).last()
 
-        # payments_for_year = Payment.objects.filter(
-        #     include_payment_in_report=True,
-        #     user=user_id,
-        #     date__gte=one_year_start,
-        #     date__lt=one_year_start + relativedelta(months=13),
-        #     category_id=category
-        #     ).exclude(payment_type='transfer'),
-        # sum_payments_None_category = payments_for_year.aggregate(
-        #     total_amount=Sum('amount_in_base_currency')
-        #     )['total_amount'] or 0.0
-
         if not report_for_None_category:
-            # Если отчёт не найден, создайте новый с нулевыми значениями
             report_for_None_category = Report_for_category.objects.create(
                 user=user,
                 category=None,
                 changes_in_category_for_current_month=0,
-
-                # average_for_year=sum_payments_None_category / 12
                 average_for_year=0
             )
             report_for_None_category.save()
         else:
-            # Если отчёт найден, можно обновить его, если требуется
-            # например, оставить его как есть или изменить на основе
-            # других данных
             pass
 
-        payments = Payment.objects.filter(
-            include_payment_in_report=True,
-            user=user_id,
-            date__gte=month_to_process,
-            date__lt=month_to_process + relativedelta(months=1)
-            ).exclude(payment_type='transfer')
-
-        # if not payments:
-        #     report_for_category = Report_for_category.objects.filter(
-        #         user=user,
-        #         created_at__year=current_month_start.year,
-        #         created_at__month=current_month_start.month
-        #     ).last()
-
-        #     if report_for_category:
-        #         report_for_category.changes_in_category_for_current_month = 0
-        #         payments_for_year = Payment.objects.filter(
-        #             include_payment_in_report=True,
-        #             user=user_id,
-        #             date__gte=one_year_start,
-        #             category_id=category_id
-        #         ).exclude(payment_type='transfer')
-        #         sum_payments = payments_for_year.aggregate(
-        #             total_amount=Sum('amount_in_base_currency')
-        #         )['total_amount'] or 0.0
-        #         report_for_category.save()
-        #     else:
-        #         return
-
-        categories_report = payments.values('category').annotate(
-            total_amount=Sum('amount_in_base_currency')
-        )
-
-        for category_report in categories_report:
-            category_id = category_report['category']
-            total_amount = category_report['total_amount']
-
-            if category_id is not None:
-                category = Category.objects.get(id=category_id)
-                payments_for_year = Payment.objects.filter(
-                    include_payment_in_report=True,
-                    user=user_id,
-                    date__gte=one_year_start,
-                    date__lt=one_year_start + relativedelta(months=13),
-                    category_id=category_id
-                ).exclude(payment_type='transfer')
-                sum_payments = payments_for_year.aggregate(
-                    total_amount=Sum('amount_in_base_currency')
-                )['total_amount'] or 0.0
-            else:
-                category = None
-                payments_for_year = Payment.objects.filter(
-                    include_payment_in_report=True,
-                    user=user_id,
-                    date__gte=one_year_start,
-                    date__lt=one_year_start + relativedelta(months=13),
-                    category_id=None
-                ).exclude(payment_type='transfer')
-                sum_payments = payments_for_year.aggregate(
-                    total_amount=Sum('amount_in_base_currency')
-                )['total_amount'] or 0.0
-            report_for_category = Report_for_category.objects.filter(
+        category_reports = Report_for_category.objects.filter(
                 user=user,
-                category=category,
                 created_at__year=month_to_process.year,
                 created_at__month=month_to_process.month
-            ).last()
+            )
 
-            if report_for_category:
-                report_for_category.changes_in_category_for_current_month \
-                    = total_amount
-                report_for_category.average_for_year = sum_payments / 12
-                report_for_category.save()
-            else:
-                report_for_category = Report_for_category.objects.create(
-                    user=user,
-                    category=category,
-                    changes_in_category_for_current_month=total_amount,
-                    average_for_year=sum_payments / 12
+        for category_report in category_reports:
+            payments_for_month = Payment.objects.filter(
+                include_payment_in_report=True,
+                user=user,
+                date__gte=month_to_process,
+                date__lt=month_to_process + relativedelta(months=1),
+                category=category_report.category
+            ).exclude(payment_type='transfer')
+
+            payments_for_year = Payment.objects.filter(
+                include_payment_in_report=True,
+                user=user,
+                date__gte=one_year_start,
+                date__lt=one_year_start + relativedelta(months=13),
+                category=category_report.category
+            ).exclude(payment_type='transfer')
+
+            sum_payments = payments_for_month.aggregate(
+                total_amount=Sum('amount_in_base_currency')
+            )['total_amount'] or 0.0
+
+            average_for_year = payments_for_year.aggregate(
+                total_amount=Sum('amount_in_base_currency')
+            )['total_amount'] or 0.0
+
+            category_report.changes_in_category_for_current_month = (
+                sum_payments
                 )
-                report_for_category.save()
+            category_report.average_for_year = average_for_year / 12
+            category_report.save()
+
         month_to_process += relativedelta(months=1)
