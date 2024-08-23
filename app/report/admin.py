@@ -4,10 +4,23 @@ from user.mixins import UserRestrictedAdminMixin
 from payment.admin import UserCategoryFilter
 from django.db.models import F
 from django.db.models.functions import TruncMonth
+from django.utils.timezone import now
+from rangefilter.filters import DateRangeFilterBuilder
 
 
 class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     ordering = ['-created_at']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        current_year = now().year
+        if 'created_at__range__gte' not in request.GET and \
+                'created_at__range__lte' not in request.GET:
+            qs = qs.filter(
+                created_at__year=current_year
+            )
+        return qs
+
     list_display = [
         'created_at',
         'income_in_current_month',
@@ -18,7 +31,7 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'total_available_balance_in_base_currency',
         'updated_at'
         ]
-    list_filter = ['user']
+    list_filter = [("created_at", DateRangeFilterBuilder()), 'user']
     search_fields = ['user']
     readonly_fields = [
         'user',
@@ -42,8 +55,18 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        current_year = now().year
+        current_month = now().month
+        if 'created_at__range__gte' not in request.GET and \
+                'created_at__range__lte' not in request.GET:
+            qs = qs.filter(
+                created_at__year=current_year,
+                created_at__month=current_month
+            )
         qs = qs.annotate(
             created_at_month=TruncMonth(F('created_at'))
+        ).filter(
+            average_for_year__gt=0
         )
         return qs.order_by(
             '-created_at_month',
@@ -58,7 +81,11 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'average_for_year',
         'updated_at'
         ]
-    list_filter = ['created_at', UserCategoryFilter, 'user']
+    list_filter = [
+        ("created_at", DateRangeFilterBuilder()),
+        UserCategoryFilter,
+        'user'
+        ]
     search_fields = ['category']
     readonly_fields = [
         'user',

@@ -13,6 +13,8 @@ from account.currency_conversion import base_currency_rate
 from account.models import Account  # CurrencyHistory
 from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
+from rangefilter.filters import (DateRangeFilterBuilder,
+                                 DateTimeRangeFilterBuilder)
 # from django.db.models import Avg
 # from django.db.models.functions import TruncDate
 # from datetime import datetime
@@ -78,8 +80,8 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'include_payment_in_report'
         ]
     list_filter = [
-        'created_at',
-        'date',
+        ("created_at", DateTimeRangeFilterBuilder()),
+        ('date', DateRangeFilterBuilder()),
         'payment_type',
         UserChargedAccountFilter,
         UserCategoryFilter,

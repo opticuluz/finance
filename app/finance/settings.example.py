@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'report',
     'django_celery_beat',
     'logs',
+    'rangefilter',
 ]
 
 MIDDLEWARE = [

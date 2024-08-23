@@ -33,7 +33,7 @@ def get_currency_rates(test=False):
         rates_data = '''{"base": "EUR", "date": "2024-08-05",
         "rates": {"CAD": 1.518274, "EUR": 1, "GEL": 2.965777,
         "RSD": 117.024179, "RUB": 93.192269, "SEK": 11.529046,
-        "USD": 1.096389}, "success": true, "timestamp": 1723912853}'''
+        "USD": 1.096389}, "success": true, "timestamp": 1722859384}'''
         data = json.loads(rates_data)
     else:
         access_key = config.FIXER_ACCESS_KEY
