@@ -8,6 +8,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from adminsortable2.admin import SortableAdminMixin
 from payment.admin import calculate_balance_in_base_currency
+from rangefilter.filters import DateTimeRangeFilterBuilder
 
 
 class PaymentInline(admin.TabularInline):
@@ -217,7 +218,10 @@ class CurrencyHistoryAdmin(admin.ModelAdmin):
         'base_currency',
         'updated_at'
         ]
-    list_filter = ['date_and_time', 'currency']
+    list_filter = [
+        ('date_and_time', DateTimeRangeFilterBuilder()),
+        'currency'
+        ]
     search_fields = ['date_and_time']
     readonly_fields = [
         'date_and_time',
