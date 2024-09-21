@@ -3,12 +3,14 @@ from datetime import datetime
 from django.db.models import Sum, Q, Case, When, Value
 from django.db import models
 from report.models import Report, Report_for_category
-from account.models import Account
+from account.models import Account, CurrencyHistory
 from payment.models import Payment
 from category.models import Category
 from user.models import User
 from django.db import transaction
 from dateutil.relativedelta import relativedelta
+from decimal import Decimal
+from django.utils import timezone
 
 
 @app.task
@@ -135,23 +137,85 @@ def create_report_for_user(user_id):
             Sum('total_expenses')
             )['total_expenses__sum'] or 0.0
 
-        total_balance = queryset.aggregate(
-            total_balance=Sum('balance_in_base_currency')
-            )['total_balance'] or 0.0
+        total_balance = Decimal('0.0')
+        total_available_balance = Decimal('0.0')
 
-        total_available_balance = queryset.aggregate(
-            total_balance=Sum(
-                Case(
-                    When(
-                        credit_card_limit=0,
-                        then='balance_in_base_currency'
-                        ),
-                    default=Value(0),
-                    output_field=models.DecimalField(),
-                )
-            ) + Sum(
-                'available_balance_in_base_currency')
-            )['total_balance'] or 0.0
+        if month_to_process < current_month_start.date():
+            end_date = month_to_process + relativedelta(months=1)
+            accounts = Account.objects.filter(
+                user=user_id
+            )
+            for account in accounts:
+
+                charged_balance = account.charged_payments.filter(
+                    payment_type='income',
+                    date__lt=end_date,
+                    user=user_id
+                    ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+                targed_balance = account.targed_payments.filter(
+                    payment_type='transfer',
+                    date__lt=end_date,
+                    user=user_id
+                    ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+                charged_balance = charged_balance + targed_balance
+
+                charged_balance -= account.charged_payments.filter(
+                    payment_type__in=['expenses', 'transfer'],
+                    date__lt=end_date,
+                    user=user_id
+                    ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+
+                end_date_with_time = datetime.combine(
+                    end_date,
+                    datetime.min.time()
+                    )
+                end_date_with_time = timezone.make_aware(
+                    end_date_with_time,
+                    timezone.get_current_timezone()
+                    )
+                currency_rate = CurrencyHistory.objects.filter(
+                    currency__id=account.currency.id,
+                    date_and_time__lt=end_date_with_time
+                ).order_by('-date_and_time').first()
+
+                available_balance = Decimal(
+                    charged_balance + account.credit_card_limit
+                    )
+
+                if currency_rate:
+                    total_balance_in_base_currency = Decimal(
+                        charged_balance / currency_rate.rate_in_base
+                        )
+                    available_balance_in_base = Decimal(
+                        available_balance / currency_rate.rate_in_base
+                        )
+                else:
+                    total_balance_in_base_currency = Decimal('0.0')
+                    available_balance_in_base = Decimal('0.0')
+
+                total_balance += total_balance_in_base_currency
+                total_available_balance += available_balance_in_base
+
+        else:
+            total_balance = queryset.aggregate(
+                total_balance=Sum('balance_in_base_currency')
+                )['total_balance'] or 0.0
+
+            total_available_balance = queryset.aggregate(
+                total_balance=Sum(
+                    Case(
+                        When(
+                            credit_card_limit=0,
+                            then='balance_in_base_currency'
+                            ),
+                        default=Value(0),
+                        output_field=models.DecimalField(),
+                    )
+                ) + Sum(
+                    'available_balance_in_base_currency')
+                )['total_balance'] or 0.0
 
         report = Report.objects.filter(
             user=user,
@@ -164,11 +228,10 @@ def create_report_for_user(user_id):
             report.expenses_in_current_month = expenses
             report.income_in_current_year = income_year
             report.expenses_in_current_year = expenses_year
-            if month_to_process == current_month_start.date():
-                report.total_balance_in_base_currency = total_balance
-                report.total_available_balance_in_base_currency = (
-                    total_available_balance
-                    )
+            report.total_balance_in_base_currency = total_balance
+            report.total_available_balance_in_base_currency = (
+                total_available_balance
+                )
             report.save()
         else:
             report = Report.objects.create(

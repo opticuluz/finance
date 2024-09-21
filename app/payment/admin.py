@@ -283,8 +283,8 @@ def update_account_balance(sender, instance, **kwargs):
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
     targed_balance = charged_account.targed_payments.filter(
-            payment_type='transfer'
-            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
+        payment_type='transfer'
+        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
 
     charged_balance = charged_balance + targed_balance
 

@@ -187,7 +187,7 @@ CONSTANCE_CONFIG = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/1'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
-CELERY_TIMEZONE = "Asia/Tbilisi"
+CELERY_TIMEZONE = "Europe/Belgrade"
 
 domains = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')]
 CSRF_TRUSTED_ORIGINS = [f'https://{domain}' for domain in domains]
