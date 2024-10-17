@@ -287,7 +287,9 @@ def create_report_for_category_for_user(user_id):
                 created_at__month=month_to_process.month
             ).last()
 
-            if not report_for_category:
+            if not report_for_category and (
+                    month_to_process == current_month_start.date()
+                    ):
                 report_for_category = Report_for_category.objects.create(
                     user=user,
                     category=category,
