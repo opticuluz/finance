@@ -2,6 +2,7 @@ import json
 from finance.celery import app
 import celery
 from .models import Account, Currency, CurrencyHistory
+from goal.models import Goal
 from payment.models import Payment
 import requests
 from constance import config
@@ -22,7 +23,8 @@ def update_all_data():
         calculate_currency_rate_in_base.s(),
         recalculate_amount_in_base_currency.si(),
         recalculate_balance_in_base_currency.si(),
-        create_report.si()
+        create_report.si(),
+        recalculate_goal_data.si(),
     )
     sync.delay()
 
@@ -218,3 +220,14 @@ def recalculate_amount_in_base_currency():
     with transaction.atomic():
         for payment in payments:
             calculate_amount_in_base_currency(payment)
+
+
+@app.task
+def recalculate_goal_data():
+
+    goals = Goal.objects.all()
+
+    with transaction.atomic():
+        for goal in goals:
+            goal.calculate_goal_data()
+            goal.save()
