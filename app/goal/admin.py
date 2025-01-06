@@ -10,6 +10,7 @@ class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     filter_horizontal = ('accounts',)
     list_display = [
         'title',
+        'goal',
         'calculation_method',
         'last_date',
         'amount_per_month'
