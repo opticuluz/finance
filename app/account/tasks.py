@@ -230,4 +230,3 @@ def recalculate_goal_data():
     with transaction.atomic():
         for goal in goals:
             goal.calculate_goal_data()
-            goal.save()

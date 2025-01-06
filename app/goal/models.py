@@ -45,11 +45,6 @@ class Goal(models.Model):
     def __str__(self):
         return self.title
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        self.calculate_goal_data()
-        super().save(*args, **kwargs)
-
     def calculate_goal_data(self):
         total_balance = sum(
             account.balance_in_base_currency for account in self.accounts.all()
@@ -65,6 +60,7 @@ class Goal(models.Model):
                         )
                     )
                 self.last_date = calculated_date
+                self.save()
 
         elif self.calculation_method == 'date':
             months_to_goal = (self.last_date - date.today()).days / 30
@@ -76,3 +72,4 @@ class Goal(models.Model):
                     Decimal('0.00'),
                     rounding=ROUND_HALF_UP
                 )
+                self.save()
