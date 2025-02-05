@@ -10,14 +10,16 @@ class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     filter_horizontal = ('accounts',)
     list_display = [
         'title',
-        'goal',
+        'sum',
+        'currency',
+        'sum_in_base',
         'calculation_method',
         'last_date',
         'amount_per_month'
         ]
     list_filter = ['user']
     search_fields = ['title']
-    readonly_fields = ['user', 'created_at', 'updated_at']
+    readonly_fields = ['sum_in_base', 'user', 'created_at', 'updated_at']
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "accounts":

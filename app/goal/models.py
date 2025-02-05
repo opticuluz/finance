@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from account.models import Account
+from account.models import Account, Currency
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -12,10 +12,21 @@ class Goal(models.Model):
         verbose_name_plural = 'Goals'
 
     title = models.CharField(max_length=255)
-    goal = models.DecimalField(
+    sum = models.DecimalField(
         default=0.0,
         max_digits=20,
         decimal_places=2
+        )
+    currency = models.ForeignKey(
+        Currency,
+        default=1,
+        on_delete=models.PROTECT
+        )
+    sum_in_base = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
         )
     CALCULATION_METHODS = [
         ('amount', 'By amount'),
@@ -49,7 +60,7 @@ class Goal(models.Model):
         total_balance = sum(
             account.balance_in_base_currency for account in self.accounts.all()
         ) if self.accounts.exists() else 0
-        remaining_amount = self.goal - total_balance
+        remaining_amount = self.sum_in_base - total_balance
 
         if self.calculation_method == 'amount':
             if self.amount_per_month > 0:
