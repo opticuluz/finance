@@ -28,6 +28,12 @@ class Goal(models.Model):
         blank=True,
         null=True
         )
+    remaining_sum_in_base = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        blank=True,
+        null=True
+        )
     CALCULATION_METHODS = [
         ('amount', 'By amount'),
         ('date', 'By date')
@@ -71,6 +77,7 @@ class Goal(models.Model):
                         )
                     )
                 self.last_date = calculated_date
+                self.remaining_sum_in_base = remaining_amount
                 self.save()
 
         elif self.calculation_method == 'date':
@@ -83,4 +90,5 @@ class Goal(models.Model):
                     Decimal('0.00'),
                     rounding=ROUND_HALF_UP
                 )
+                self.remaining_sum_in_base = remaining_amount
                 self.save()
