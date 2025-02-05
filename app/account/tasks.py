@@ -24,6 +24,7 @@ def update_all_data():
         recalculate_amount_in_base_currency.si(),
         recalculate_balance_in_base_currency.si(),
         create_report.si(),
+        recalculate_goal_sum_in_base_currency.si(),
         recalculate_goal_data.si(),
     )
     sync.delay()
@@ -230,3 +231,32 @@ def recalculate_goal_data():
     with transaction.atomic():
         for goal in goals:
             goal.calculate_goal_data()
+
+
+@app.task
+def recalculate_goal_sum_in_base_currency():
+
+    goals = Goal.objects.all()
+
+    with transaction.atomic():
+        for goal in goals:
+            if goal.currency.title == config.BASE_CURRENCY:
+                # account.balance_in_base_currency = account.balance
+                Goal.objects.filter(id=goal.id).update(
+                    sum_in_base=goal.sum
+                    )
+            else:
+                rate = goal.currency.rate
+                if rate is None:
+                    # account.balance_in_base_currency = Decimal('0.0')
+                    Goal.objects.filter(id=goal.id).update(
+                        sum_in_base=Decimal('0.0')
+                        )
+                else:
+                    rate = Decimal(base_currency_rate()) / rate
+                    # account.balance_in_base_currency = Decimal(
+                    #     account.balance
+                    #     ) * rate
+                    Goal.objects.filter(id=goal.id).update(
+                        sum_in_base=Decimal(goal.sum) * rate
+                    )
