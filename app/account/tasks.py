@@ -2,13 +2,14 @@ import json
 from finance.celery import app
 import celery
 from .models import Account, Currency, CurrencyHistory
+from crypto.models import CryptoCurrency
 from goal.models import Goal
 from payment.models import Payment
 import requests
 from constance import config
 from account.currency_conversion import base_currency_rate
 from decimal import Decimal, ROUND_HALF_UP
-from logs.models import LogEntry
+from logs.models import LogEntry, LogEntryCrypto
 from payment.models import calculate_amount_in_base_currency
 from datetime import datetime
 from django.utils.timezone import make_aware
@@ -26,6 +27,10 @@ def update_all_data():
         create_report.si(),
         recalculate_goal_sum_in_base_currency.si(),
         recalculate_goal_data.si(),
+        get_crypto_list.si(),
+        fill_crypto_list.s(),
+        get_crypto_rate.si(),
+        fill_crypto_rate.s(),
     )
     sync.delay()
 
@@ -260,3 +265,93 @@ def recalculate_goal_sum_in_base_currency():
                     Goal.objects.filter(id=goal.id).update(
                         sum_in_base=Decimal(goal.sum) * rate
                     )
+
+
+@app.task
+def get_crypto_list():
+    type = 'List'
+    x_cmc_pro_url = config.X_CMC_PRO_URL
+    x_cmc_pro_access_key = config.X_CMC_PRO_API_KEY
+    url = f'{x_cmc_pro_url}/v1/cryptocurrency/map'
+    headers = {
+        "X-CMC_PRO_API_KEY": x_cmc_pro_access_key
+    }
+    params = {
+        "listing_status": "active",
+        "limit": 100,
+        "sort": "cmc_rank"
+    }
+    response = requests.get(url, headers=headers, params=params)
+    crypto_data_list = response.json()
+    LogEntryCrypto.objects.create(data=crypto_data_list, type=type)
+    return crypto_data_list
+
+
+@app.task
+def fill_crypto_list(crypto_data_list):
+    if not crypto_data_list.get('data'):
+        error_info = crypto_data_list.get('error', {}).get(
+            'error_message',
+            'Unknown error'
+            )
+        print(f"API Error: {error_info}")
+        return
+    crypto_list = crypto_data_list.get('data')
+    if not crypto_list:
+        print("No crypto list available")
+        return
+    for item in crypto_list:
+        CryptoCurrency.objects.update_or_create(
+            cmc_id=item.get('id'),
+            defaults={
+                "cmc_rank": item.get('rank'),
+                "title": item.get('name'),
+                "symbol": item.get('symbol')
+            }
+        )
+
+
+@app.task
+def get_crypto_rate():
+    type = 'Rate'
+    x_cmc_pro_url = config.X_CMC_PRO_URL
+    x_cmc_pro_access_key = config.X_CMC_PRO_API_KEY
+    active_currencies = CryptoCurrency.objects.filter(
+        is_active=True
+        ).values_list('cmc_id', flat=True)
+    ids = ",".join(map(str, sorted(list(active_currencies))))
+    url = f'{x_cmc_pro_url}/v2/cryptocurrency/quotes/latest'
+    headers = {
+        "X-CMC_PRO_API_KEY": x_cmc_pro_access_key
+    }
+    params = {
+        "id": ids,
+        "convert": config.BASE_CURRENCY
+    }
+    response = requests.get(url, headers=headers, params=params)
+    crypto_data_rate = response.json()
+    LogEntryCrypto.objects.create(data=crypto_data_rate, type=type)
+    return crypto_data_rate
+
+
+@app.task
+def fill_crypto_rate(crypto_data_rate):
+    if not crypto_data_rate.get('data'):
+        error_info = crypto_data_rate.get('error', {}).get(
+            'error_message',
+            'Unknown error'
+            )
+        print(f"API Error: {error_info}")
+        return
+    crypto_rate = crypto_data_rate.get('data')
+    if not crypto_rate:
+        print("No crypto rate available")
+        return
+    for id, price_data in crypto_rate.items():
+        rate = price_data['quote'][config.BASE_CURRENCY]['price']
+        CryptoCurrency.objects.update_or_create(
+            cmc_id=id,
+            defaults={
+                "rate_in_base": rate
+            }
+        )
