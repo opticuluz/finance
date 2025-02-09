@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'logs',
     'rangefilter',
     'goal',
+    'crypto',
 ]
 
 MIDDLEWARE = [
@@ -183,6 +184,8 @@ CONSTANCE_REDIS_CONNECTION = {
 CONSTANCE_CONFIG = {
     'FIXER_URL': ('http://data.fixer.io/api/latest', 'Fixel url'),
     'FIXER_ACCESS_KEY': ('', 'Fixer Access Key'),
+    'COINMARKETCAP_URL': ('https://pro-api.coinmarketcap.com', 'Coinmarketcap url'),
+    'COINMARKETCAP_API_KEY': ('', 'Coinmarketcap Access Key'),
     'BASE_CURRENCY': ('USD', 'Base Currency'),
 }
 

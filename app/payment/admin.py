@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
+import decimal
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
 from account.currency_conversion import base_currency_rate
@@ -15,6 +16,7 @@ from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
 from rangefilter.filters import (DateRangeFilterBuilder,
                                  DateTimeRangeFilterBuilder)
+from django import forms
 # from django.db.models import Avg
 # from django.db.models.functions import TruncDate
 # from datetime import datetime
@@ -62,6 +64,18 @@ class UserCategoryFilter(SimpleListFilter):
         return queryset
 
 
+class DecimalWithoutTrailingZeroesWidget(forms.TextInput):
+    def format_value(self, value):
+        if value is None:
+            return ''
+        # Если значение Decimal, убираем лишние нули
+        if isinstance(value, float) or isinstance(value, decimal.Decimal):
+            value = f"{value: .18f}".rstrip('0')
+            if value.endswith('.'):
+                value += '00'
+        return super().format_value(value)
+
+
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     class Media:
@@ -73,7 +87,7 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'payment_type',
         'charged_account',
         'targed_account',
-        'amount',
+        'get_amount',
         'amount_in_base_currency',
         'category',
         'date',
@@ -96,6 +110,16 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'updated_at'
         ]
 
+    def get_amount(self, obj):
+        if obj.charged_account.currency.cryptocurrency is None:
+            return f"{obj.amount: .2f}"
+        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+        if formatted_amount.endswith('.'):
+            formatted_amount += '00'
+        return formatted_amount
+
+    get_amount.short_description = 'Amount'
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj=obj, **kwargs)
         if not request.user.is_superuser:
@@ -108,6 +132,9 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             form.base_fields['category'].queryset = form.base_fields[
                 'category'
                 ].queryset.filter(user=request.user, active=True)
+        form.base_fields['amount'].widget = (
+            DecimalWithoutTrailingZeroesWidget()
+        )
         return form
 
     def save_model(self, request, obj, form, change):
@@ -203,16 +230,28 @@ def calculate_balance_in_base_currency(instance, **kwargs):
         if instance.currency.title == base_currency:
             instance.balance_in_base_currency = instance.balance
         else:
-            balance_in_base_currency = Decimal(
-                Decimal(instance.balance)
-                /
-                Decimal(instance.currency.rate_in_base)
-                )
-            rounded_amount = balance_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.balance_in_base_currency = rounded_amount
+            if instance.currency.cryptocurrency:
+                balance_in_base_currency = Decimal(
+                    Decimal(instance.balance)
+                    *
+                    Decimal(instance.currency.rate_in_base)
+                    )
+                rounded_amount = balance_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.balance_in_base_currency = rounded_amount
+            else:
+                balance_in_base_currency = Decimal(
+                    Decimal(instance.balance)
+                    /
+                    Decimal(instance.currency.rate_in_base)
+                    )
+                rounded_amount = balance_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.balance_in_base_currency = rounded_amount
     else:
         return None  # Вернуть None вместо вывода предупреждения
         # messages.warning(

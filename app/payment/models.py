@@ -41,7 +41,7 @@ class Payment(models.Model):
         blank=True,
         related_name='targed_payments'
         )
-    amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
+    amount = models.DecimalField(default=0.0, max_digits=36, decimal_places=18)
     amount_in_base_currency = models.DecimalField(
         default=0.0,
         max_digits=20,
@@ -109,19 +109,34 @@ def calculate_amount_in_base_currency(instance, **kwargs):
                 amount_in_base_currency=instance.amount
                 )
         else:
-            amount_in_base_currency = Decimal(
-                instance.amount
-                /
-                average_rate
-                )
-            rounded_amount = amount_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.amount_in_base_currency = rounded_amount
-            Payment.objects.filter(id=instance.id).update(
-                amount_in_base_currency=rounded_amount
-                )
+            if instance.charged_account.currency.cryptocurrency:
+                amount_in_base_currency = Decimal(
+                    instance.amount
+                    *
+                    average_rate
+                    )
+                rounded_amount = amount_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.amount_in_base_currency = rounded_amount
+                Payment.objects.filter(id=instance.id).update(
+                    amount_in_base_currency=rounded_amount
+                    )
+            else:
+                amount_in_base_currency = Decimal(
+                    instance.amount
+                    /
+                    average_rate
+                    )
+                rounded_amount = amount_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.amount_in_base_currency = rounded_amount
+                Payment.objects.filter(id=instance.id).update(
+                    amount_in_base_currency=rounded_amount
+                    )
     else:
         return None  # Вернуть None вместо вывода предупреждения
         # messages.warning(
