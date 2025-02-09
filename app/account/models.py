@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from crypto.models import CryptoCurrency
 
 
 class Currency(models.Model):
@@ -8,8 +10,14 @@ class Currency(models.Model):
         verbose_name = 'Currency'
         verbose_name_plural = 'Currencies'
 
-    title = models.CharField(max_length=3, unique=True)
+    title = models.CharField(max_length=100, unique=True)
     symbol = models.CharField(max_length=10)
+    cryptocurrency = models.ForeignKey(
+        CryptoCurrency,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
     rate = models.DecimalField(
         max_digits=20,
         decimal_places=6,
@@ -24,6 +32,17 @@ class Currency(models.Model):
         )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        if self.cryptocurrency:
+            existing_currency = Currency.objects.filter(
+                cryptocurrency=self.cryptocurrency
+            ).exclude(id=self.id)
+
+            if existing_currency.exists():
+                raise ValidationError(
+                    "Эта криптовалюта уже привязана к другой валюте!"
+                    )
 
     def __str__(self):
         return self.title
@@ -54,7 +73,11 @@ class CurrencyHistory(models.Model):
 class Account(models.Model):
     account_name = models.CharField(max_length=100, unique=False)
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
-    balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
+    balance = models.DecimalField(
+        default=0.0,
+        max_digits=36,
+        decimal_places=18
+        )
     balance_in_base_currency = models.DecimalField(
         default=0.0,
         max_digits=20,
@@ -106,9 +129,19 @@ class Account(models.Model):
         db_index=True
     )
 
+    def formatted_balance(self):
+        if self.currency.cryptocurrency is None:
+            return f"{self.balance: .2f}"
+        formatted_balance = f"{self.balance: .18f}".rstrip('0')
+        if formatted_balance.endswith('.'):
+            formatted_balance += '00'
+
+        return formatted_balance
+
     def __str__(self):
+        balance_str = self.formatted_balance()
         if self.currency.title == 'USD':
-            return f'{self.account_name}: ${self.balance}'
+            return f'{self.account_name}: ${balance_str}'
         else:
-            sign = self.currency.symbol
-            return f'{self.account_name}: {self.balance} {sign}'
+            sign = self.currency.symbol or ''
+            return f'{self.account_name}: {balance_str} {sign}'

@@ -1,7 +1,7 @@
 import json
 from finance.celery import app
 import celery
-from .models import Account, Currency, CurrencyHistory
+from account.models import Account, Currency, CurrencyHistory
 from crypto.models import CryptoCurrency
 from goal.models import Goal
 from payment.models import Payment
@@ -15,6 +15,7 @@ from datetime import datetime
 from django.utils.timezone import make_aware
 from report.tasks import create_report
 from django.db import transaction
+from dateutil import parser
 
 
 @app.task
@@ -31,6 +32,7 @@ def update_all_data():
         fill_crypto_list.s(),
         get_crypto_rate.si(),
         fill_crypto_rate.s(),
+        # calculate_cryptocurrency_rate_in_base.s(),
     )
     sync.delay()
 
@@ -46,7 +48,9 @@ def get_currency_rates(test=False):
     else:
         access_key = config.FIXER_ACCESS_KEY
         fixer_url = config.FIXER_URL
-        currency_titles = Currency.objects.values_list('title', flat=True)
+        currency_titles = Currency.objects.filter(
+            cryptocurrency__isnull=True
+            ).values_list('title', flat=True)
         currency_titles_str = ','.join(currency_titles)
         url = f'{fixer_url}?access_key={access_key
                                         }&symbols={currency_titles_str}'
@@ -270,11 +274,11 @@ def recalculate_goal_sum_in_base_currency():
 @app.task
 def get_crypto_list():
     type = 'List'
-    x_cmc_pro_url = config.X_CMC_PRO_URL
-    x_cmc_pro_access_key = config.X_CMC_PRO_API_KEY
-    url = f'{x_cmc_pro_url}/v1/cryptocurrency/map'
+    coinmarketcap_url = config.COINMARKETCAP_URL
+    coinmarketcap_access_key = config.COINMARKETCAP_API_KEY
+    url = f'{coinmarketcap_url}/v1/cryptocurrency/map'
     headers = {
-        "X-CMC_PRO_API_KEY": x_cmc_pro_access_key
+        "X-CMC_PRO_API_KEY": coinmarketcap_access_key
     }
     params = {
         "listing_status": "active",
@@ -314,15 +318,15 @@ def fill_crypto_list(crypto_data_list):
 @app.task
 def get_crypto_rate():
     type = 'Rate'
-    x_cmc_pro_url = config.X_CMC_PRO_URL
-    x_cmc_pro_access_key = config.X_CMC_PRO_API_KEY
+    coinmarketcap_url = config.COINMARKETCAP_URL
+    coinmarketcap_access_key = config.COINMARKETCAP_API_KEY
     active_currencies = CryptoCurrency.objects.filter(
         is_active=True
         ).values_list('cmc_id', flat=True)
     ids = ",".join(map(str, sorted(list(active_currencies))))
-    url = f'{x_cmc_pro_url}/v2/cryptocurrency/quotes/latest'
+    url = f'{coinmarketcap_url}/v2/cryptocurrency/quotes/latest'
     headers = {
-        "X-CMC_PRO_API_KEY": x_cmc_pro_access_key
+        "X-CMC_PRO_API_KEY": coinmarketcap_access_key
     }
     params = {
         "id": ids,
@@ -349,9 +353,31 @@ def fill_crypto_rate(crypto_data_rate):
         return
     for id, price_data in crypto_rate.items():
         rate = price_data['quote'][config.BASE_CURRENCY]['price']
-        CryptoCurrency.objects.update_or_create(
-            cmc_id=id,
-            defaults={
-                "rate_in_base": rate
-            }
-        )
+        try:
+            crypto = CryptoCurrency.objects.get(cmc_id=id)
+            currency = Currency.objects.get(cryptocurrency=crypto)
+            currency.rate_in_base = rate
+            currency.save()
+
+        except CryptoCurrency.DoesNotExist:
+            print(f"CryptoCurrency with cmc_id={id} not found.")
+        except Currency.DoesNotExist:
+            print(f"No Currency linked to CryptoCurrency with cmc_id={id}.")
+
+        date_time = price_data['quote'][config.BASE_CURRENCY]['last_updated']
+        aware_datetime = parser.isoparse(date_time)
+        try:
+            crypto = CryptoCurrency.objects.get(cmc_id=id)
+            currency_instance = Currency.objects.get(cryptocurrency=crypto)
+            CurrencyHistory.objects.update_or_create(
+                currency=currency_instance,
+                date_and_time=aware_datetime,
+                defaults={
+                    'rate_in_base': rate,
+                    'base_currency': config.BASE_CURRENCY
+                }
+            )
+        except CryptoCurrency.DoesNotExist:
+            print(f"CryptoCurrency with cmc_id={id} not found.")
+        except Currency.DoesNotExist:
+            print(f"No Currency linked to CryptoCurrency with cmc_id={id}.")

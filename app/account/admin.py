@@ -1,6 +1,6 @@
 from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
-from .models import Account, Currency, CurrencyHistory
+from .models import Account, Currency, CurrencyHistory, CryptoCurrency
 from user.mixins import UserRestrictedAdminMixin
 from payment.models import Payment
 from report.tasks import create_report
@@ -9,6 +9,7 @@ from django.dispatch import receiver
 from adminsortable2.admin import SortableAdminMixin
 from payment.admin import calculate_balance_in_base_currency
 from rangefilter.filters import DateTimeRangeFilterBuilder
+from django import forms
 
 
 class PaymentInline(admin.TabularInline):
@@ -19,13 +20,14 @@ class PaymentInline(admin.TabularInline):
         'payment_type',
         'charged_account',
         'targed_account',
-        'amount',
+        'get_amount',
         'amount_in_base_currency',
         'category',
         'date',
         'note',
         'include_payment_in_report'
         ]
+    exclude = ['amount']
     can_delete = False
     extra = 0
 
@@ -42,6 +44,16 @@ class PaymentInline(admin.TabularInline):
         queryset = queryset.order_by('-created_at')
         return queryset
 
+    def get_amount(self, obj):
+        if obj.charged_account.currency.cryptocurrency is None:
+            return f"{obj.amount: .2f}"
+        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+        if formatted_amount.endswith('.'):
+            formatted_amount += '00'
+        return formatted_amount
+
+    get_amount.short_description = 'Amount'
+
 
 class PaymentTargedInline(admin.TabularInline):
     model = Payment
@@ -51,13 +63,14 @@ class PaymentTargedInline(admin.TabularInline):
         'payment_type',
         'charged_account',
         'targed_account',
-        'amount',
+        'get_amount',
         'amount_in_base_currency',
         'category',
         'date',
         'note',
         'include_payment_in_report'
         ]
+    exclude = ['amount']
     can_delete = False
     extra = 0
 
@@ -73,6 +86,16 @@ class PaymentTargedInline(admin.TabularInline):
         queryset = super().get_queryset(request)
         queryset = queryset.order_by('-created_at')
         return queryset
+
+    def get_amount(self, obj):
+        if obj.charged_account.currency.cryptocurrency is None:
+            return f"{obj.amount: .2f}"
+        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+        if formatted_amount.endswith('.'):
+            formatted_amount += '00'
+        return formatted_amount
+
+    get_amount.short_description = 'Amount'
 
 
 # def base_currency_rate():
@@ -109,7 +132,7 @@ class AccountAdmin(
     ordering = ['my_order']
     list_display = [
         'account_name',
-        'balance',
+        'get_balance',
         'currency',
         'balance_in_base_currency',
         'include_account_in_report',
@@ -123,7 +146,7 @@ class AccountAdmin(
         ]
     search_fields = ['account_name', 'user']
     readonly_fields = [
-        'balance',
+        'get_balance',
         'balance_in_base_currency',
         'credit_card_limit_in_base_currency',
         'available_balance',
@@ -132,7 +155,18 @@ class AccountAdmin(
         'created_at',
         'updated_at'
         ]
+    exclude = ['balance']
     inlines = [PaymentInline, PaymentTargedInline]
+
+    def get_balance(self, obj):
+        if obj.currency.cryptocurrency is None:
+            return f"{obj.balance: .2f}"
+        formatted_balance = f"{obj.balance: .18f}".rstrip('0')
+        if formatted_balance.endswith('.'):
+            formatted_balance += '00'
+        return formatted_balance
+
+    get_balance.short_description = 'Balance'
 
     def save_model(self, request, obj, form, change):
 
@@ -189,7 +223,23 @@ def create_report_on_payment_item_save(sender, instance, **kwargs):
 admin.site.register(Account, AccountAdmin)
 
 
+class CurrencyAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'cryptocurrency' in self.fields:
+            self.fields['cryptocurrency'].queryset = (
+                CryptoCurrency.objects.filter(
+                    is_active=True
+                    ).order_by('cmc_rank')
+            )
+
+    class Meta:
+        model = Currency
+        fields = '__all__'
+
+
 class CurrencyAdmin(admin.ModelAdmin):
+    form = CurrencyAdminForm
     ordering = ['title']
     list_display = [
         'title',

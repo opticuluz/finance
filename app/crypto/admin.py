@@ -7,7 +7,6 @@ class CryptoCurrencyAdmin(admin.ModelAdmin):
     list_display = [
         'title',
         'symbol',
-        'rate_in_base',
         'is_active',
         'updated_at'
         ]
@@ -17,7 +16,6 @@ class CryptoCurrencyAdmin(admin.ModelAdmin):
         'cmc_rank',
         'title',
         'symbol',
-        'rate_in_base',
         'created_at',
         'updated_at'
         ]
