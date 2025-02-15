@@ -125,6 +125,30 @@ class PaymentTargedInline(admin.TabularInline):
 #     return None
 
 
+class CurrencyTypeFilter(SimpleListFilter):
+    title = 'Currency Type'
+    parameter_name = 'currency_type'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('crypto', 'Crypto'),
+            ('fiat', 'Fiat')
+        ]
+
+    def queryset(self, request, queryset):
+        if hasattr(queryset.model, 'cryptocurrency'):
+            if self.value() == 'crypto':
+                return queryset.filter(cryptocurrency__isnull=False)
+            elif self.value() == 'fiat':
+                return queryset.filter(cryptocurrency__isnull=True)
+        elif hasattr(queryset.model, 'currency'):
+            if self.value() == 'crypto':
+                return queryset.filter(currency__cryptocurrency__isnull=False)
+            elif self.value() == 'fiat':
+                return queryset.filter(currency__cryptocurrency__isnull=True)
+        return queryset
+
+
 class AccountAdmin(
         SortableAdminMixin,
         UserRestrictedAdminMixin,
@@ -141,6 +165,7 @@ class AccountAdmin(
         ]
     list_filter = [
         'account_name',
+        CurrencyTypeFilter,
         'currency',
         'include_account_in_report',
         'user'
@@ -212,42 +237,6 @@ class CurrencyAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class CurrencyTypeFilter(SimpleListFilter):
-    title = 'Currency Type'
-    parameter_name = 'currency_type'
-
-    def lookups(self, request, model_admin):
-        return [
-            ('crypto', 'Crypto'),
-            ('fiat', 'Fiat')
-        ]
-
-    def queryset(self, request, queryset):
-        if self.value() == 'crypto':
-            return queryset.filter(cryptocurrency__isnull=False)
-        elif self.value() == 'fiat':
-            return queryset.filter(cryptocurrency__isnull=True)
-        return queryset
-
-
-class CurrencyHistoryTypeFilter(SimpleListFilter):
-    title = 'Currency Type'
-    parameter_name = 'currency_type'
-
-    def lookups(self, request, model_admin):
-        return [
-            ('crypto', 'Crypto'),
-            ('fiat', 'Fiat')
-        ]
-
-    def queryset(self, request, queryset):
-        if self.value() == 'crypto':
-            return queryset.filter(currency__cryptocurrency__isnull=False)
-        elif self.value() == 'fiat':
-            return queryset.filter(currency__cryptocurrency__isnull=True)
-        return queryset
-
-
 class CurrencyAdmin(admin.ModelAdmin):
     form = CurrencyAdminForm
     ordering = ['title']
@@ -281,7 +270,7 @@ class CurrencyHistoryAdmin(admin.ModelAdmin):
         ]
     list_filter = [
         ('date_and_time', DateTimeRangeFilterBuilder()),
-        CurrencyHistoryTypeFilter,
+        CurrencyTypeFilter,
         'currency'
         ]
     search_fields = ['date_and_time']
