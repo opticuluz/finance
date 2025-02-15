@@ -68,9 +68,8 @@ class DecimalWithoutTrailingZeroesWidget(forms.TextInput):
     def format_value(self, value):
         if value is None:
             return ''
-        # Если значение Decimal, убираем лишние нули
         if isinstance(value, float) or isinstance(value, decimal.Decimal):
-            value = f"{value: .18f}".rstrip('0')
+            value = "{:.18f}".format(value).rstrip('0')
             if value.endswith('.'):
                 value += '00'
         return super().format_value(value)
@@ -112,8 +111,8 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     def get_amount(self, obj):
         if obj.charged_account.currency.cryptocurrency is None:
-            return f"{obj.amount: .2f}"
-        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+            return "{:.2f}".format(obj.amount)
+        formatted_amount = "{:.18f}".format(obj.amount).rstrip('0')
         if formatted_amount.endswith('.'):
             formatted_amount += '00'
         return formatted_amount

@@ -234,18 +234,19 @@ def get_crypto_rate():
         is_active=True
         ).values_list('cmc_id', flat=True)
     ids = ",".join(map(str, sorted(list(active_currencies))))
-    url = f'{coinmarketcap_url}/v2/cryptocurrency/quotes/latest'
-    headers = {
-        "X-CMC_PRO_API_KEY": coinmarketcap_access_key
-    }
-    params = {
-        "id": ids,
-        "convert": config.BASE_CURRENCY
-    }
-    response = requests.get(url, headers=headers, params=params)
-    crypto_data_rate = response.json()
-    LogEntryCrypto.objects.create(data=crypto_data_rate, type=type)
-    return crypto_data_rate
+    if ids is not None and ids:
+        url = f'{coinmarketcap_url}/v2/cryptocurrency/quotes/latest'
+        headers = {
+            "X-CMC_PRO_API_KEY": coinmarketcap_access_key
+        }
+        params = {
+            "id": ids,
+            "convert": config.BASE_CURRENCY
+        }
+        response = requests.get(url, headers=headers, params=params)
+        crypto_data_rate = response.json()
+        LogEntryCrypto.objects.create(data=crypto_data_rate, type=type)
+        return crypto_data_rate
 
 
 @app.task

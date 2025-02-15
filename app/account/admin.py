@@ -46,8 +46,8 @@ class PaymentInline(admin.TabularInline):
 
     def get_amount(self, obj):
         if obj.charged_account.currency.cryptocurrency is None:
-            return f"{obj.amount: .2f}"
-        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+            return "{:.2f}".format(obj.amount)
+        formatted_amount = "{:.18f}".format(obj.amount).rstrip('0')
         if formatted_amount.endswith('.'):
             formatted_amount += '00'
         return formatted_amount
@@ -89,8 +89,8 @@ class PaymentTargedInline(admin.TabularInline):
 
     def get_amount(self, obj):
         if obj.charged_account.currency.cryptocurrency is None:
-            return f"{obj.amount: .2f}"
-        formatted_amount = f"{obj.amount: .18f}".rstrip('0')
+            return "{:.2f}".format(obj.amount)
+        formatted_amount = "{:.18f}".format(obj.amount).rstrip('0')
         if formatted_amount.endswith('.'):
             formatted_amount += '00'
         return formatted_amount
@@ -160,8 +160,8 @@ class AccountAdmin(
 
     def get_balance(self, obj):
         if obj.currency.cryptocurrency is None:
-            return f"{obj.balance: .2f}"
-        formatted_balance = f"{obj.balance: .18f}".rstrip('0')
+            return "{:.2f}".format(obj.balance)
+        formatted_balance = "{:.18f}".format(obj.balance).rstrip('0')
         if formatted_balance.endswith('.'):
             formatted_balance += '00'
         return formatted_balance
@@ -171,11 +171,19 @@ class AccountAdmin(
     def save_model(self, request, obj, form, change):
         calculate_balance_in_base_currency(instance=obj)
         super().save_model(request, obj, form, change)
-        create_report_on_payment_item_save(sender=Account, instance=obj, from_admin=True)
+        create_report_on_payment_item_save(
+            sender=Account,
+            instance=obj,
+            from_admin=True
+            )
 
     def delete_model(self, request, obj):
         super().delete_model(request, obj)
-        create_report_on_payment_item_save(sender=Account, instance=obj, from_admin=True)
+        create_report_on_payment_item_save(
+            sender=Account,
+            instance=obj,
+            from_admin=True
+            )
 
 
 @receiver([post_save, post_delete], sender=Account)
