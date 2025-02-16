@@ -31,11 +31,10 @@ def create_report(user_id=None):
 
 
 def create_report_for_user(user_id):
-    queryset = Account.objects.filter(
+    accounts = Account.objects.filter(
         include_account_in_report=True,
         user=user_id
         )
-
     user = User.objects.get(id=user_id)
 
     first_payment = Payment.objects.filter(
@@ -59,7 +58,7 @@ def create_report_for_user(user_id):
     while month_to_process <= current_month_start.date():
         current_year_start = month_to_process.replace(month=1)
 
-        if not queryset:
+        if not accounts:
             report = Report.objects.filter(
                 user=user,
                 created_at__year=month_to_process.year,
@@ -75,7 +74,7 @@ def create_report_for_user(user_id):
                 report.expenses_in_current_year = 0
                 report.save()
 
-        income = queryset.annotate(
+        income = accounts.annotate(
             total_income=Sum(
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
@@ -90,7 +89,7 @@ def create_report_for_user(user_id):
         ).values('total_income').aggregate(
             Sum('total_income')
             )['total_income__sum'] or 0.0
-        expenses = queryset.annotate(
+        expenses = accounts.annotate(
             total_expenses=Sum(
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
@@ -106,7 +105,7 @@ def create_report_for_user(user_id):
             Sum('total_expenses')
             )['total_expenses__sum'] or 0.0
 
-        income_year = queryset.annotate(
+        income_year = accounts.annotate(
             total_income=Sum(
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
@@ -121,7 +120,8 @@ def create_report_for_user(user_id):
         ).values('total_income').aggregate(
             Sum('total_income')
             )['total_income__sum'] or 0.0
-        expenses_year = queryset.annotate(
+
+        expenses_year = accounts.annotate(
             total_expenses=Sum(
                 'charged_payments__amount_in_base_currency',
                 filter=Q(
@@ -142,31 +142,23 @@ def create_report_for_user(user_id):
 
         if month_to_process < current_month_start.date():
             end_date = month_to_process + relativedelta(months=1)
-            accounts = Account.objects.filter(
-                user=user_id
-            )
             for account in accounts:
-
                 charged_balance = account.charged_payments.filter(
                     payment_type='income',
                     date__lt=end_date,
                     user=user_id
                     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
-
                 targed_balance = account.targed_payments.filter(
                     payment_type='transfer',
                     date__lt=end_date,
                     user=user_id
                     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
-
                 charged_balance = charged_balance + targed_balance
-
                 charged_balance -= account.charged_payments.filter(
                     payment_type__in=['expenses', 'transfer'],
                     date__lt=end_date,
                     user=user_id
                     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.0')
-
                 end_date_with_time = datetime.combine(
                     end_date,
                     datetime.min.time()
@@ -179,11 +171,9 @@ def create_report_for_user(user_id):
                     currency__id=account.currency.id,
                     date_and_time__lt=end_date_with_time
                 ).order_by('-date_and_time').first()
-
                 available_balance = Decimal(
                     charged_balance + account.credit_card_limit
                     )
-
                 if currency_rate:
                     total_balance_in_base_currency = Decimal(
                         charged_balance / currency_rate.rate_in_base
@@ -194,16 +184,13 @@ def create_report_for_user(user_id):
                 else:
                     total_balance_in_base_currency = Decimal('0.0')
                     available_balance_in_base = Decimal('0.0')
-
                 total_balance += total_balance_in_base_currency
                 total_available_balance += available_balance_in_base
-
         else:
-            total_balance = queryset.aggregate(
+            total_balance = accounts.aggregate(
                 total_balance=Sum('balance_in_base_currency')
                 )['total_balance'] or 0.0
-
-            total_available_balance = queryset.aggregate(
+            total_available_balance = accounts.aggregate(
                 total_balance=Sum(
                     Case(
                         When(
@@ -216,13 +203,11 @@ def create_report_for_user(user_id):
                 ) + Sum(
                     'available_balance_in_base_currency')
                 )['total_balance'] or 0.0
-
         report = Report.objects.filter(
             user=user,
             created_at__year=month_to_process.year,
             created_at__month=month_to_process.month
         ).last()
-
         if report:
             report.income_in_current_month = income
             report.expenses_in_current_month = expenses
@@ -234,6 +219,14 @@ def create_report_for_user(user_id):
                 )
             report.save()
         else:
+            created_at_with_time = datetime.combine(
+                    month_to_process,
+                    datetime.min.time()
+                    )
+            created_at_with_time = timezone.make_aware(
+                created_at_with_time,
+                timezone.get_current_timezone()
+                )
             report = Report.objects.create(
                 user=user,
                 total_balance_in_base_currency=total_balance,
@@ -243,8 +236,9 @@ def create_report_for_user(user_id):
                 income_in_current_month=income,
                 expenses_in_current_month=expenses,
                 income_in_current_year=income_year,
-                expenses_in_current_year=expenses_year
+                expenses_in_current_year=expenses_year,
             )
+            report.created_at = created_at_with_time
             report.save()
         month_to_process += relativedelta(months=1)
 
@@ -279,6 +273,15 @@ def create_report_for_category_for_user(user_id):
 
         categories = Category.objects.filter(user=user_id)
 
+        created_at_with_time = datetime.combine(
+            month_to_process,
+            datetime.min.time()
+            )
+        created_at_with_time = timezone.make_aware(
+            created_at_with_time,
+            timezone.get_current_timezone()
+            )
+
         for category in categories:
             report_for_category = Report_for_category.objects.filter(
                 user=user,
@@ -287,15 +290,14 @@ def create_report_for_category_for_user(user_id):
                 created_at__month=month_to_process.month
             ).last()
 
-            if not report_for_category and (
-                    month_to_process == current_month_start.date()
-                    ):
+            if not report_for_category:
                 report_for_category = Report_for_category.objects.create(
                     user=user,
                     category=category,
                     changes_in_category_for_current_month=0,
                     average_for_year=0
                 )
+                report_for_category.created_at = created_at_with_time
                 report_for_category.save()
             else:
                 pass
@@ -314,6 +316,7 @@ def create_report_for_category_for_user(user_id):
                 changes_in_category_for_current_month=0,
                 average_for_year=0
             )
+            report_for_None_category.created_at = created_at_with_time
             report_for_None_category.save()
         else:
             pass
