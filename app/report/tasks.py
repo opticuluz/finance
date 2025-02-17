@@ -237,8 +237,6 @@ def create_report_for_user(user_id):
                 expenses_in_current_month=expenses,
                 income_in_current_year=income_year,
                 expenses_in_current_year=expenses_year
-
-                
             )
             report.created_at = created_at_with_time
             report.save()

@@ -5,21 +5,26 @@ from payment.admin import UserCategoryFilter
 from django.db.models import F
 from django.db.models.functions import TruncMonth
 from django.utils.timezone import now
+from datetime import datetime
+from django.utils.http import urlencode
+from django.shortcuts import redirect
 from rangefilter.filters import DateRangeFilterBuilder
 
 
 class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
     ordering = ['-created_at']
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        current_year = now().year
-        if 'created_at__range__gte' not in request.GET and \
-                'created_at__range__lte' not in request.GET:
-            qs = qs.filter(
-                created_at__year=current_year
-            )
-        return qs
+    def changelist_view(self, request, extra_context=None):
+        if (
+            'created_at__range__gte' not in request.GET
+            and 'created_at__range__lte' not in request.GET
+        ):
+            current_year = now().year
+            start_date = datetime(current_year, 1, 1).strftime('%d.%m.%Y')
+            params = dict(request.GET.copy())
+            params['created_at__range__gte'] = start_date
+            return redirect(f"{request.path}?{urlencode(params)}")
+        return super().changelist_view(request, extra_context)
 
     list_display = [
         'created_at',
@@ -55,14 +60,6 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        current_year = now().year
-        current_month = now().month
-        if 'created_at__range__gte' not in request.GET and \
-                'created_at__range__lte' not in request.GET:
-            qs = qs.filter(
-                created_at__year=current_year,
-                created_at__month=current_month
-            )
         qs = qs.annotate(
             created_at_month=TruncMonth(F('created_at'))
         ).filter(
@@ -73,6 +70,23 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             '-changes_in_category_for_current_month',
             '-average_for_year'
             )
+
+    def changelist_view(self, request, extra_context=None):
+        if (
+            'created_at__range__gte' not in request.GET
+            and 'created_at__range__lte' not in request.GET
+        ):
+            current_year = now().year
+            current_month = now().month
+            start_date = datetime(
+                current_year,
+                current_month,
+                1
+                ).strftime('%d.%m.%Y')
+            params = dict(request.GET.copy())
+            params['created_at__range__gte'] = start_date
+            return redirect(f"{request.path}?{urlencode(params)}")
+        return super().changelist_view(request, extra_context)
 
     list_display = [
         'created_at',

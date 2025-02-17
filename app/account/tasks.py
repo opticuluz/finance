@@ -56,6 +56,13 @@ def get_currency_rates(test=False):
         url = f'{fixer_url}?access_key={access_key
                                         }&symbols={currency_titles_str}'
         response = requests.get(url)
+        if response.status_code != 200:
+            error_message = {
+                "status_code": response.status_code,
+                "response_text": response.text
+            }
+            LogEntry.objects.create(data=error_message)
+            return None
         data = response.json()
         LogEntry.objects.create(data=data)
     return data
@@ -70,6 +77,9 @@ def recalculate_rates_in_history():
 
 @app.task
 def calculate_currency_rate_in_base(data):
+    if data is None:
+        print("Skipping task: data is None")
+        return
     if not data.get('success'):
         error_info = data.get('error', {}).get('info', 'Unknown error')
         print(f"API Error: {error_info}")
@@ -196,6 +206,13 @@ def get_crypto_list():
         "sort": "cmc_rank"
     }
     response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        error_message = {
+            "status_code": response.status_code,
+            "response_text": response.text
+        }
+        LogEntryCrypto.objects.create(data=error_message, type=type)
+        return None
     crypto_data_list = response.json()
     LogEntryCrypto.objects.create(data=crypto_data_list, type=type)
     return crypto_data_list
@@ -203,6 +220,9 @@ def get_crypto_list():
 
 @app.task
 def fill_crypto_list(crypto_data_list):
+    if crypto_data_list is None:
+        print("Skipping task: crypto_data_list is None")
+        return
     if not crypto_data_list.get('data'):
         error_info = crypto_data_list.get('error', {}).get(
             'error_message',
@@ -244,6 +264,13 @@ def get_crypto_rate():
             "convert": config.BASE_CURRENCY
         }
         response = requests.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            error_message = {
+                "status_code": response.status_code,
+                "response_text": response.text
+            }
+            LogEntryCrypto.objects.create(data=error_message, type=type)
+            return None
         crypto_data_rate = response.json()
         LogEntryCrypto.objects.create(data=crypto_data_rate, type=type)
         return crypto_data_rate
@@ -251,6 +278,9 @@ def get_crypto_rate():
 
 @app.task
 def fill_crypto_rate(crypto_data_rate):
+    if crypto_data_rate is None:
+        print("Skipping task: crypto_data_rate is None")
+        return
     if not crypto_data_rate.get('data'):
         error_info = crypto_data_rate.get('error', {}).get(
             'error_message',
