@@ -26,7 +26,8 @@ class PaymentInline(admin.TabularInline):
         'category',
         'date',
         'note',
-        'include_payment_in_report'
+        'include_payment_in_report',
+        'tags'
         ]
     exclude = ['amount']
     can_delete = False
@@ -69,7 +70,8 @@ class PaymentTargedInline(admin.TabularInline):
         'category',
         'date',
         'note',
-        'include_payment_in_report'
+        'include_payment_in_report',
+        'tags'
         ]
     exclude = ['amount']
     can_delete = False
