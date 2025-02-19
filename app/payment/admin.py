@@ -2,6 +2,7 @@ from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
 from .models import Payment
 from category.models import Category
+from tag.models import Tag
 from user.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
@@ -16,6 +17,7 @@ from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
 from rangefilter.filters import (DateRangeFilterBuilder,
                                  DateTimeRangeFilterBuilder)
+from dal import autocomplete
 from django import forms
 # from django.db.models import Avg
 # from django.db.models.functions import TruncDate
@@ -64,6 +66,27 @@ class UserCategoryFilter(SimpleListFilter):
         return queryset
 
 
+class UserTagFilter(SimpleListFilter):
+    title = 'Tags'
+    parameter_name = 'tags'
+
+    def lookups(self, request, model_admin):
+        if request.user.is_superuser:
+            tags = Tag.objects.filter(active=True).order_by('tag_name')
+        else:
+            tags = Tag.objects.filter(
+                user=request.user,
+                active=True
+                ).order_by('tag_name')
+
+        return [(tag.id, tag.tag_name) for tag in tags]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(tags__id=self.value())
+        return queryset
+
+
 class DecimalWithoutTrailingZeroesWidget(forms.TextInput):
     def format_value(self, value):
         if value is None:
@@ -75,7 +98,18 @@ class DecimalWithoutTrailingZeroesWidget(forms.TextInput):
         return super().format_value(value)
 
 
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = "__all__"
+        widgets = {
+            "tags": autocomplete.ModelSelect2Multiple(url='tag-autocomplete'),
+        }
+
+
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+
+    form = PaymentForm
 
     class Media:
         js = ['js/change_payment_form.js']
@@ -99,6 +133,7 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         UserChargedAccountFilter,
         UserCategoryFilter,
         'include_payment_in_report',
+        UserTagFilter,
         'user'
         ]
     search_fields = ['amount']

@@ -15,10 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from payment.autocomplete import TagAutocomplete
 from django.views.generic.base import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('tag-autocomplete/',
+         TagAutocomplete.as_view(),
+         name='tag-autocomplete'
+         ),
     path(
         "robots.txt",
         TemplateView.as_view(

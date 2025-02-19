@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from account.models import Account, CurrencyHistory
 from category.models import Category
+from tag.models import Tag
 from django.db.models import Avg
 from django.db.models.functions import TruncDate
 from datetime import datetime
@@ -53,6 +54,11 @@ class Payment(models.Model):
         null=True,
         blank=True
         )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name="payments"
+    )
     date = models.DateField()
     note = models.CharField(max_length=255, blank=True, null=True)
     include_payment_in_report = models.BooleanField(default=True)
