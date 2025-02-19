@@ -32,6 +32,8 @@ ALLOWED_HOSTS = [] if DEBUG else os.environ.get("DJANGO_ALLOWED_HOSTS").split(',
 # Application definition
 
 INSTALLED_APPS = [
+    'dal',
+    'dal_select2',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +51,8 @@ INSTALLED_APPS = [
     'logs',
     'rangefilter',
     'goal',
+    'crypto',
+    'tag',
 ]
 
 MIDDLEWARE = [
@@ -183,6 +187,8 @@ CONSTANCE_REDIS_CONNECTION = {
 CONSTANCE_CONFIG = {
     'FIXER_URL': ('http://data.fixer.io/api/latest', 'Fixel url'),
     'FIXER_ACCESS_KEY': ('', 'Fixer Access Key'),
+    'COINMARKETCAP_URL': ('https://pro-api.coinmarketcap.com', 'Coinmarketcap url'),
+    'COINMARKETCAP_API_KEY': ('', 'Coinmarketcap Access Key'),
     'BASE_CURRENCY': ('USD', 'Base Currency'),
 }
 

@@ -2,11 +2,13 @@ from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
 from .models import Payment
 from category.models import Category
+from tag.models import Tag
 from user.mixins import UserRestrictedAdminMixin
 from django.utils import timezone
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum
+import decimal
 from decimal import Decimal, ROUND_HALF_UP
 from constance import config
 from account.currency_conversion import base_currency_rate
@@ -15,6 +17,8 @@ from django.contrib.admin import SimpleListFilter
 from django.core.exceptions import ValidationError
 from rangefilter.filters import (DateRangeFilterBuilder,
                                  DateTimeRangeFilterBuilder)
+from dal import autocomplete
+from django import forms
 # from django.db.models import Avg
 # from django.db.models.functions import TruncDate
 # from datetime import datetime
@@ -62,7 +66,50 @@ class UserCategoryFilter(SimpleListFilter):
         return queryset
 
 
+class UserTagFilter(SimpleListFilter):
+    title = 'Tags'
+    parameter_name = 'tags'
+
+    def lookups(self, request, model_admin):
+        if request.user.is_superuser:
+            tags = Tag.objects.filter(active=True).order_by('tag_name')
+        else:
+            tags = Tag.objects.filter(
+                user=request.user,
+                active=True
+                ).order_by('tag_name')
+
+        return [(tag.id, tag.tag_name) for tag in tags]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(tags__id=self.value())
+        return queryset
+
+
+class DecimalWithoutTrailingZeroesWidget(forms.TextInput):
+    def format_value(self, value):
+        if value is None:
+            return ''
+        if isinstance(value, float) or isinstance(value, decimal.Decimal):
+            value = "{:.18f}".format(value).rstrip('0')
+            if value.endswith('.'):
+                value += '00'
+        return super().format_value(value)
+
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = "__all__"
+        widgets = {
+            "tags": autocomplete.ModelSelect2Multiple(url='tag-autocomplete'),
+        }
+
+
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+
+    form = PaymentForm
 
     class Media:
         js = ['js/change_payment_form.js']
@@ -73,7 +120,7 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'payment_type',
         'charged_account',
         'targed_account',
-        'amount',
+        'get_amount',
         'amount_in_base_currency',
         'category',
         'date',
@@ -86,6 +133,7 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         UserChargedAccountFilter,
         UserCategoryFilter,
         'include_payment_in_report',
+        UserTagFilter,
         'user'
         ]
     search_fields = ['amount']
@@ -95,6 +143,16 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'created_at',
         'updated_at'
         ]
+
+    def get_amount(self, obj):
+        if obj.charged_account.currency.cryptocurrency is None:
+            return "{:.2f}".format(obj.amount)
+        formatted_amount = "{:.18f}".format(obj.amount).rstrip('0')
+        if formatted_amount.endswith('.'):
+            formatted_amount += '00'
+        return formatted_amount
+
+    get_amount.short_description = 'Amount'
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj=obj, **kwargs)
@@ -108,6 +166,9 @@ class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             form.base_fields['category'].queryset = form.base_fields[
                 'category'
                 ].queryset.filter(user=request.user, active=True)
+        form.base_fields['amount'].widget = (
+            DecimalWithoutTrailingZeroesWidget()
+        )
         return form
 
     def save_model(self, request, obj, form, change):
@@ -203,16 +264,28 @@ def calculate_balance_in_base_currency(instance, **kwargs):
         if instance.currency.title == base_currency:
             instance.balance_in_base_currency = instance.balance
         else:
-            balance_in_base_currency = Decimal(
-                Decimal(instance.balance)
-                /
-                Decimal(instance.currency.rate_in_base)
-                )
-            rounded_amount = balance_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.balance_in_base_currency = rounded_amount
+            if instance.currency.cryptocurrency:
+                balance_in_base_currency = Decimal(
+                    Decimal(instance.balance)
+                    *
+                    Decimal(instance.currency.rate_in_base)
+                    )
+                rounded_amount = balance_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.balance_in_base_currency = rounded_amount
+            else:
+                balance_in_base_currency = Decimal(
+                    Decimal(instance.balance)
+                    /
+                    Decimal(instance.currency.rate_in_base)
+                    )
+                rounded_amount = balance_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.balance_in_base_currency = rounded_amount
     else:
         return None  # Вернуть None вместо вывода предупреждения
         # messages.warning(

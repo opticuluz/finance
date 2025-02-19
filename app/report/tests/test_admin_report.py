@@ -31,8 +31,9 @@ class ReportAdminSiteTests(TestCase):
 
     def test_report_list(self):
         url = reverse('admin:report_report_changelist')
-        res = self.client.get(url)
+        res = self.client.get(url, follow=True)
 
+        self.assertEqual(res.status_code, 200)
         self.assertContains(res, self.report.user)
         self.assertContains(res, self.report.income_in_current_month)
         self.assertContains(res, self.report.expenses_in_current_month)

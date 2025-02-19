@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from account.models import Account, CurrencyHistory
 from category.models import Category
+from tag.models import Tag
 from django.db.models import Avg
 from django.db.models.functions import TruncDate
 from datetime import datetime
@@ -41,7 +42,7 @@ class Payment(models.Model):
         blank=True,
         related_name='targed_payments'
         )
-    amount = models.DecimalField(default=0.0, max_digits=20, decimal_places=2)
+    amount = models.DecimalField(default=0.0, max_digits=36, decimal_places=18)
     amount_in_base_currency = models.DecimalField(
         default=0.0,
         max_digits=20,
@@ -53,6 +54,11 @@ class Payment(models.Model):
         null=True,
         blank=True
         )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name="payments"
+    )
     date = models.DateField()
     note = models.CharField(max_length=255, blank=True, null=True)
     include_payment_in_report = models.BooleanField(default=True)
@@ -109,19 +115,34 @@ def calculate_amount_in_base_currency(instance, **kwargs):
                 amount_in_base_currency=instance.amount
                 )
         else:
-            amount_in_base_currency = Decimal(
-                instance.amount
-                /
-                average_rate
-                )
-            rounded_amount = amount_in_base_currency.quantize(
-                Decimal('0.00'),
-                rounding=ROUND_HALF_UP
-                )
-            instance.amount_in_base_currency = rounded_amount
-            Payment.objects.filter(id=instance.id).update(
-                amount_in_base_currency=rounded_amount
-                )
+            if instance.charged_account.currency.cryptocurrency:
+                amount_in_base_currency = Decimal(
+                    instance.amount
+                    *
+                    average_rate
+                    )
+                rounded_amount = amount_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.amount_in_base_currency = rounded_amount
+                Payment.objects.filter(id=instance.id).update(
+                    amount_in_base_currency=rounded_amount
+                    )
+            else:
+                amount_in_base_currency = Decimal(
+                    instance.amount
+                    /
+                    average_rate
+                    )
+                rounded_amount = amount_in_base_currency.quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                    )
+                instance.amount_in_base_currency = rounded_amount
+                Payment.objects.filter(id=instance.id).update(
+                    amount_in_base_currency=rounded_amount
+                    )
     else:
         return None  # Вернуть None вместо вывода предупреждения
         # messages.warning(

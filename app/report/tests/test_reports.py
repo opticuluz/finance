@@ -183,9 +183,7 @@ class ReportTests(TestCase):
             user=self.user_1
         )
 
-        # result =
         create_report.apply(args=[self.user_1.id])
-        # self.assertEqual(result.status, 'SUCCESS')
 
         self.report = Report.objects.filter(user=self.user_1).last()
 
