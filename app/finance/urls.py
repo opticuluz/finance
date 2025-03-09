@@ -19,7 +19,7 @@ from payment.autocomplete import TagAutocomplete
 from django.views.generic.base import TemplateView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('finance-overview/', admin.site.urls),
     path('tag-autocomplete/',
          TagAutocomplete.as_view(),
          name='tag-autocomplete'
