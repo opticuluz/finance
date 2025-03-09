@@ -29,14 +29,9 @@ class PaymentInline(admin.TabularInline):
         'include_payment_in_report',
         'tags'
         ]
-    exclude = ['amount']
+    exclude = ['amount', 'user']
     can_delete = False
     extra = 0
-
-    def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return self.readonly_fields + ['user']
-        return self.readonly_fields
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -73,14 +68,9 @@ class PaymentTargedInline(admin.TabularInline):
         'include_payment_in_report',
         'tags'
         ]
-    exclude = ['amount']
+    exclude = ['amount', 'user']
     can_delete = False
     extra = 0
-
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # obj will be None when creating a new Account
-            return self.readonly_fields + ['user']
-        return self.readonly_fields
 
     def has_add_permission(self, request, obj=None):
         return False
