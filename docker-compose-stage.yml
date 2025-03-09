@@ -10,7 +10,7 @@ services:
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DOMAIN}
-      - DJANGO_DEBUG=1
+      - DJANGO_DEBUG=0
       - DB_HOST=db
       - DB_NAME=finance_db
       - DB_USER=postgres_user
@@ -91,12 +91,11 @@ services:
       sh -c "celery -A finance purge -f &&
              celery -A finance beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: finance_celery_beat
-    
+
   celery-worker:
     <<: *celery
     command: celery -A finance worker -l info -E
     container_name: finance_celery_worker
-
   # celery-flower:
   #   <<: *celery
   #   ports:
