@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
 from user import models
 
 
@@ -21,12 +22,20 @@ class UserAdmin(BaseUserAdmin):
                 )
             }
         ),
-        (_('Important dates'), {'fields': (
-            'registration_date',
-            'last_login',
-            )}),
+        (
+            _('Account Security'),
+            {
+                'fields': ('two_factor_link',),
+            }
+        ),
+        (
+            _('Important dates'),
+            {
+                'fields': ('registration_date', 'last_login',)
+            }
+        ),
     )
-    readonly_fields = ['registration_date', 'last_login']
+    readonly_fields = ['registration_date', 'last_login', 'two_factor_link']
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
@@ -43,6 +52,13 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
+    def two_factor_link(self, obj):
+        return format_html(
+            '<a href="{url}" target="_blank">{text}</a>',
+            url="/account/two_factor/",
+            text="Set up Two-Factor Authentication"
+        )
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if not request.user.is_superuser:
@@ -51,7 +67,6 @@ class UserAdmin(BaseUserAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if not request.user.is_superuser:
-            # Make permissions field read-only for non-superusers
             return list(self.readonly_fields) + [
                 'email',
                 'is_active',

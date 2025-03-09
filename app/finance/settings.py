@@ -40,6 +40,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_otp',
+    'django_otp.plugins.otp_static',
+    'django_otp.plugins.otp_totp',
+    'two_factor',
     'constance',
     'adminsortable2',
     'user',
@@ -61,6 +65,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -142,6 +147,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+USE_L10N = False
+
 FORMAT_MODULE_PATH = 'finance.formats'
 
 
@@ -190,3 +197,7 @@ CELERY_TIMEZONE = "Europe/Belgrade"
 
 domains = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')]
 CSRF_TRUSTED_ORIGINS = [f'https://{domain}' for domain in domains]
+
+TWO_FACTOR_LOGIN_TIMEOUT = 120
+LOGIN_URL = 'two_factor:login'
+LOGIN_REDIRECT_URL = '/finance-dashboard/'
