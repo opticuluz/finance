@@ -109,6 +109,7 @@ volumes:
   db-data:
   redis-data:
   static_data:
+  logs_data:
   certbot-web:
   proxy-dhparams:
   certbot-certs:
