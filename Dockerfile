@@ -28,7 +28,6 @@ RUN chmod +x /scripts/*
 
 RUN mkdir -p /vol/web/media
 RUN mkdir -p /vol/web/static
-RUN mkdir -p /app/app_logs
 
 RUN adduser --disabled-password --no-create-home django-user
 RUN chown -R django-user:django-user /vol
