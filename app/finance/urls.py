@@ -14,14 +14,22 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.contrib.auth.decorators import user_passes_test
+from django.urls import path, include
+from two_factor.urls import urlpatterns as tf_urls
 from payment.autocomplete import TagAutocomplete
 from django.views.generic.base import TemplateView
 
+
+def is_admin(user):
+    return user.is_staff
+
+
 urlpatterns = [
+    path('', include(tf_urls)),
     path('finance-dashboard/', admin.site.urls),
     path('tag-autocomplete/',
-         TagAutocomplete.as_view(),
+         user_passes_test(is_admin)(TagAutocomplete.as_view()),
          name='tag-autocomplete'
          ),
     path(
