@@ -47,3 +47,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+
+class LoginAttempt(models.Model):
+    email = models.CharField(max_length=150)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    successful = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.email} - {
+            'Successful' if self.successful else 'Failed'
+            } - {self.timestamp}"

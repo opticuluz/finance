@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - static_data:/vol/web
+      - logs_data:/app_logs
       - /opt/buildagent/temp:/opt/buildagent/temp
     command: >
       sh -c "chmod +x /opt/buildagent/temp/agentTmp/docker-shell-script-*.sh && 
@@ -88,3 +89,4 @@ volumes:
   db-data:
   redis-data:
   static_data:
+  logs_data:
