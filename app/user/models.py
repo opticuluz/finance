@@ -1,4 +1,6 @@
 from django.db import models
+import pytz
+from django.utils.timezone import get_default_timezone_name
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -36,6 +38,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     registration_date = models.DateTimeField(auto_now_add=True)
+    timezone = models.CharField(
+        max_length=50,
+        choices=[(tz, tz) for tz in pytz.all_timezones],
+        default=get_default_timezone_name,
+    )
 
     objects = UserManager()
 

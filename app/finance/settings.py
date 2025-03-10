@@ -68,6 +68,7 @@ MIDDLEWARE = [
     'django_otp.middleware.OTPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'finance.middleware.TimezoneMiddleware',
 ]
 
 ROOT_URLCONF = 'finance.urls'
@@ -141,11 +142,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Europe/Belgrade'
-
-USE_I18N = True
+TIME_ZONE = 'UTC'
 
 USE_TZ = True
+
+USE_I18N = True
 
 USE_L10N = False
 

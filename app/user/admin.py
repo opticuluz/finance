@@ -10,7 +10,7 @@ class UserAdmin(BaseUserAdmin):
     ordering = ['-registration_date']
     list_display = ['registration_date', 'email', 'is_active']
     fieldsets = (
-        (None, {'fields': ('email', 'password', 'name')}),
+        (None, {'fields': ('email', 'password', 'name', 'timezone')}),
         (
             _('Permissions'),
             {
