@@ -28,12 +28,13 @@ RUN chmod +x /scripts/*
 
 RUN mkdir -p /vol/web/media
 RUN mkdir -p /vol/web/static
+RUN mkdir -p /app_logs
 
 RUN adduser --disabled-password --no-create-home django-user
 RUN chown -R django-user:django-user /vol
-RUN chown -R django-user:django-user /app/app_logs
 RUN chmod -R 755 /vol/web
-RUN chmod -R 755 /app/app_logs
+RUN chown -R django-user:django-user /app_logs
+RUN chmod -R 755 /app_logs
 USER django-user
 
 CMD ["entrypoint.sh"]
