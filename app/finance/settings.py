@@ -176,13 +176,7 @@ AUTH_USER_MODEL = 'user.User'
 
 EXCHANGE_BACKEND = 'djmoney.contrib.exchange.backends.FixerBackend'
 
-CONSTANCE_BACKEND = 'constance.backends.redisd.RedisBackend'
-
-CONSTANCE_REDIS_CONNECTION = {
-    'host': redis,
-    'port': 6379,
-    'db': 0,
-}
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 
 CONSTANCE_CONFIG = {
     'FIXER_URL': ('http://data.fixer.io/api/latest', 'Fixel url'),
@@ -194,7 +188,7 @@ CONSTANCE_CONFIG = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/1'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
-CELERY_TIMEZONE = "Europe/Belgrade"
+CELERY_TIMEZONE = "UTC"
 
 domains = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS").split(',')]
 CSRF_TRUSTED_ORIGINS = [f'https://{domain}' for domain in domains]
