@@ -11,3 +11,4 @@ uWSGI>=2.0,<2.1
 freezegun>=1.5.1,<1.6
 django-admin-rangefilter>=0.13.1,<0.14
 django-autocomplete-light>=3.11.0,<3.12
+django-two-factor-auth[phonenumberslite]>=1.17.0,<1.18
