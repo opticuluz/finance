@@ -210,7 +210,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': 'logs/admin_security.log',
+            'filename': 'admin_security.log',
             'formatter': 'verbose',
         },
     },
