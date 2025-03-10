@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from user import models
+from user.models import LoginAttempt
 
 
 class UserAdmin(BaseUserAdmin):
@@ -78,3 +79,11 @@ class UserAdmin(BaseUserAdmin):
 
 
 admin.site.register(models.User, UserAdmin)
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ('email', 'ip_address', 'timestamp', 'successful')
+    search_fields = ('email', 'ip_address')
+    list_filter = ('successful',)
+    readonly_fields = ['email', 'ip_address', 'successful', 'timestamp']

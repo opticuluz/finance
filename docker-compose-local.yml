@@ -10,6 +10,7 @@ services:
     volumes:
       - ./app:/app
       - static_data:/vol/web
+      - logs_data:/app_logs
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py wait_for_db &&
@@ -70,7 +71,7 @@ services:
       sh -c "celery -A finance purge -f &&
              celery -A finance beat -l debug --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: finance_celery_beat
-    
+
   celery-worker:
     <<: *celery
     command: celery -A finance worker -l debug -E
@@ -83,8 +84,8 @@ services:
     command: celery -A finance flower
     container_name: finance_celery_flower
 
-
 volumes:
   db-data:
   redis-data:
   static_data:
+  logs_data:

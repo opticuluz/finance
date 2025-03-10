@@ -7,6 +7,7 @@ services:
     restart: always
     volumes:
       - static_data:/vol/web
+      - logs_data:/app_logs
     environment:
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DOMAIN}
@@ -108,6 +109,7 @@ volumes:
   db-data:
   redis-data:
   static_data:
+  logs_data:
   certbot-web:
   proxy-dhparams:
   certbot-certs:
