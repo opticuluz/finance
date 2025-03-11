@@ -1,4 +1,11 @@
 server {
+    listen 80 default_server;
+    server_name _;
+
+    return 301 https://${DOMAIN}$request_uri;
+}
+
+server {
     listen 80;
     server_name ${DOMAIN} www.${DOMAIN};
 
@@ -7,8 +14,22 @@ server {
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://${DOMAIN}$request_uri;
     }
+}
+
+server {
+    listen 443 ssl default_server;
+    server_name _;
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    include /etc/nginx/options-ssl-nginx.conf;
+    
+    ssl_dhparam /vol/proxy/ssl-dhparams.pem;
+
+    return 301 https://${DOMAIN}$request_uri;
 }
 
 server {
