@@ -175,12 +175,20 @@ def create_report_for_user(user_id):
                     charged_balance + account.credit_card_limit
                     )
                 if currency_rate:
-                    total_balance_in_base_currency = Decimal(
-                        charged_balance / currency_rate.rate_in_base
-                        )
-                    available_balance_in_base = Decimal(
-                        available_balance / currency_rate.rate_in_base
-                        )
+                    if account.currency.cryptocurrency:
+                        total_balance_in_base_currency = Decimal(
+                            charged_balance * currency_rate.rate_in_base
+                            )
+                        available_balance_in_base = Decimal(
+                            available_balance * currency_rate.rate_in_base
+                            )
+                    else:
+                        total_balance_in_base_currency = Decimal(
+                            charged_balance / currency_rate.rate_in_base
+                            )
+                        available_balance_in_base = Decimal(
+                            available_balance / currency_rate.rate_in_base
+                            )
                 else:
                     total_balance_in_base_currency = Decimal('0.0')
                     available_balance_in_base = Decimal('0.0')
