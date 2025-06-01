@@ -21,7 +21,7 @@ set -e
 #     envsubst < /etc/nginx/default-ssl.conf.tpl > /etc/nginx/conf.d/default.conf
 # fi
 
-envsubst '$APP_HOST $APP_PORT' < /etc/nginx/nginx.conf.tpl > /etc/nginx/nginx.conf
+envsubst '$APP_HOST $APP_PORT' < /etc/nginx/default.conf.tpl > /etc/nginx/conf.d/default.conf
 
 echo "Checking NGINX config..."
 nginx -t
