@@ -23,7 +23,7 @@ services:
       - db
       - redis
     networks:
-      - proxy
+      - internal
 
   proxy:
     build:
@@ -43,8 +43,10 @@ services:
       - "traefik.http.routers.finance.entrypoints=websecure"
       - "traefik.http.routers.finance.tls=true"
       - "traefik.http.services.finance.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
     networks:
       - proxy
+      - internal
 
   db:
     image: postgres:15-alpine
@@ -57,7 +59,7 @@ services:
       - POSTGRES_PASSWORD=postgres_password
     container_name: finance_db
     networks:
-      - proxy
+      - internal
 
   redis:
     image: redis:7.0-alpine
@@ -66,7 +68,7 @@ services:
       - redis-data:/data
     container_name: finance_redis
     networks:
-      - proxy
+      - internal
 
   celery-beat: &celery
     build:
@@ -89,15 +91,15 @@ services:
              celery -A finance beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: finance_celery_beat
     networks:
-      - proxy
+      - internal
 
   celery-worker:
     <<: *celery
     command: celery -A finance worker -l info -E
     container_name: finance_celery_worker
     networks:
-      - proxy
-  
+      - internal
+
   # celery-flower:
   #   <<: *celery
   #   ports:
@@ -105,7 +107,7 @@ services:
   #   command: celery -A finance flower
     # container_name: finance_celery_flower
     # networks:
-    #   - proxy
+    #   - internal
 
 volumes:
   db-data:
@@ -117,3 +119,4 @@ volumes:
 networks:
   proxy:
     external: true
+  internal:

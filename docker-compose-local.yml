@@ -4,17 +4,15 @@ services:
       context: .
       args:
         - DEV=true
-    restart: always
     ports:
-      - "8000:8000"
+      - "8081:8000"
     volumes:
       - ./app:/app
       - static_data:/vol/static
       - media_data:/vol/media
       - logs_data:/app_logs
     command: >
-      sh -c "python manage.py collectstatic --noinput &&
-             python manage.py wait_for_db &&
+      sh -c "python manage.py wait_for_db &&
              python manage.py makemigrations --noinput &&
              python manage.py migrate && 
              python manage.py runserver 0.0.0.0:8000"
@@ -36,12 +34,13 @@ services:
       - "traefik.http.routers.finance.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.finance.entrypoints=web"
       - "traefik.http.services.finance.loadbalancer.server.port=8000"
+      - "traefik.docker.network=proxy"
     networks:
       - proxy
+      - internal
 
   db:
     image: postgres:15-alpine
-    restart: always
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -50,21 +49,19 @@ services:
       - POSTGRES_PASSWORD=postgres_password
     container_name: finance_db
     networks:
-      - proxy
+      - internal
 
   redis:
     image: redis:7.0-alpine
-    restart: always
     volumes:
       - redis-data:/data
     container_name: finance_redis
     networks:
-      - proxy
+      - internal
 
   celery-beat: &celery
     build:
       context: .
-    restart: always
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
       - DB_HOST=db
@@ -84,14 +81,14 @@ services:
              celery -A finance beat -l debug --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: finance_celery_beat
     networks:
-      - proxy
+      - internal
 
   celery-worker:
     <<: *celery
     command: celery -A finance worker -l debug -E
     container_name: finance_celery_worker
     networks:
-      - proxy
+      - internal
 
   celery-flower:
     <<: *celery
@@ -100,7 +97,7 @@ services:
     command: celery -A finance flower
     container_name: finance_celery_flower
     networks:
-      - proxy
+      - internal
 
 volumes:
   db-data:
@@ -112,3 +109,4 @@ volumes:
 networks:
   proxy:
     external: true
+  internal:
