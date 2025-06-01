@@ -17,8 +17,7 @@ FROM nginx:1.28-alpine
 
 
 
-
-COPY ./nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx/nginx.conf.tpl /etc/nginx/nginx.conf.tpl
 COPY ./nginx/uwsgi_params /etc/nginx/uwsgi_params
 COPY ./run.sh /run.sh
 
