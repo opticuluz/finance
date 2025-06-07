@@ -156,11 +156,11 @@ FORMAT_MODULE_PATH = 'finance.formats'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = '/static/static/'
-MEDIA_URL = '/static/media/'
+STATIC_URL = 'static/'
+MEDIA_URL = 'media/'
 
-STATIC_ROOT = '/vol/web/static'
-MEDIA_ROOT = '/vol/web/media'
+STATIC_ROOT = '/vol/static/'
+MEDIA_ROOT = '/vol/media/'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
