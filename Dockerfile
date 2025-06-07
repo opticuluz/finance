@@ -1,7 +1,7 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 LABEL maintainer="opticuluz"
 
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 ENV PATH="/scripts:${PATH}"
 ENV PATH="/py/bin:$PATH"
 
@@ -26,13 +26,14 @@ RUN python -m venv /py && \
 
 RUN chmod +x /scripts/*
 
-RUN mkdir -p /vol/web/media
-RUN mkdir -p /vol/web/static
+RUN mkdir -p /vol/static
+RUN mkdir -p /vol/media
 RUN mkdir -p /app_logs
 
 RUN adduser --disabled-password --no-create-home django-user
 RUN chown -R django-user:django-user /vol
-RUN chmod -R 755 /vol/web
+RUN chmod -R 755 /vol/static
+RUN chmod -R 755 /vol/media
 RUN chown -R django-user:django-user /app_logs
 RUN chmod -R 755 /app_logs
 USER django-user
