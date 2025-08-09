@@ -4,6 +4,7 @@ services:
       context: .
       args:
         - DEV=true
+    restart: unless-stopped
     volumes:
       - ./app:/app
       - static_data:/vol/static
@@ -39,6 +40,7 @@ services:
 
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -51,6 +53,7 @@ services:
 
   redis:
     image: redis:7.0-alpine
+    restart: unless-stopped
     volumes:
       - redis-data:/data
     container_name: finance_redis
@@ -60,6 +63,7 @@ services:
   celery-beat: &celery
     build:
       context: .
+    restart: unless-stopped
     environment:
       - DJANGO_SETTINGS_MODULE=finance.settings
       - DB_HOST=db
