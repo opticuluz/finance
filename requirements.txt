@@ -1,9 +1,9 @@
-Django>=5.0,<5.1
+Django>=5.2.4,<5.3
 psycopg2>=2.9.6,<2.10
 django-constance>=4.3.2,<4.4
 redis>=4.6.0,<4.7
 celery>=5.3.1,<5.4
-django-celery-beat>=2.6.0,<2.7
+django-celery-beat>=2.8.1,<2.9
 flower>=2.0.0,<2.1
 requests>=2.32.0,<2.33
 django-admin-sortable2>=2.1.9,<2.2
