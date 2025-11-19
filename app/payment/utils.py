@@ -12,8 +12,8 @@ def get_presigned_url(key, expires_in=3600):
         final_scheme = "http"
     else:
         final_scheme = "https"
-    
-    public_netloc = settings.MINIO_PUBLIC_DOMAIN 
+
+    public_netloc = settings.MINIO_PUBLIC_DOMAIN
 
     s3 = boto3.client(
         "s3",
@@ -35,5 +35,5 @@ def get_presigned_url(key, expires_in=3600):
         scheme=final_scheme,
         netloc=public_netloc
     )
-    
+
     return urlunparse(parsed)
