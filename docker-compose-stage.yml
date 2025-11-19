@@ -173,6 +173,7 @@ volumes:
   static_data:
   media_data:
   logs_data:
+  minio_data:
 
 networks:
   proxy:
