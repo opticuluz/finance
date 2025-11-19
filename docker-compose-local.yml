@@ -123,23 +123,16 @@ services:
       MINIO_BROWSER: "on"
     volumes:
       - minio_data:/data
-    # ports:
-    #   - "9000:9000"
-    #   - "9001:9001"
     labels:
       - "traefik.enable=true"
 
-      # ===========================
       # MinIO S3 API (порт 9000)
-      # ===========================
       - "traefik.http.routers.minio-s3.rule=Host(`${MINIO_PUBLIC_DOMAIN}`)"
       - "traefik.http.routers.minio-s3.entrypoints=web"
       - "traefik.http.routers.minio-s3.service=minio-s3"
       - "traefik.http.services.minio-s3.loadbalancer.server.port=9000"
 
-      # ===========================
       # MinIO Web Console (порт 9001)
-      # ===========================
       - "traefik.http.routers.minio-console.rule=Host(`${MINIO_ADMIN_DOMAIN}`)"
       - "traefik.http.routers.minio-console.entrypoints=web"
       - "traefik.http.routers.minio-console.service=minio-console"
