@@ -27,7 +27,7 @@ def is_admin(user):
 
 urlpatterns = [
     path('', include(tf_urls)),
-    path('finance-dashboard/', admin.site.urls),
+    path('system-dashboard/', admin.site.urls),
     path('tag-autocomplete/',
          user_passes_test(is_admin)(TagAutocomplete.as_view()),
          name='tag-autocomplete'

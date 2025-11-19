@@ -1,6 +1,7 @@
+import os
 from django.contrib import admin  # , messages
 # from django.utils.translation import gettext_lazy as _
-from .models import Payment
+from .models import Payment, PaymentReceipt
 from category.models import Category
 from tag.models import Tag
 from user.mixins import UserRestrictedAdminMixin
@@ -22,6 +23,10 @@ from django import forms
 # from django.db.models import Avg
 # from django.db.models.functions import TruncDate
 # from datetime import datetime
+from django.utils.html import format_html
+from payment.utils import get_presigned_url
+from django.utils.safestring import mark_safe
+from django.contrib.auth import get_user_model
 
 
 class UserChargedAccountFilter(SimpleListFilter):
@@ -107,12 +112,56 @@ class PaymentForm(forms.ModelForm):
         }
 
 
+# Кастомный виджет для поля image
+class PresignedImageWidget(forms.ClearableFileInput):
+    template_name = "django/forms/widgets/clearable_file_input.html"
+
+    def format_value(self, value):
+        if value:
+            url = get_presigned_url(value.name)
+            filename = os.path.basename(value.name)  # <- только имя файла
+            return mark_safe(f'<a href="{url}" target="_blank">{filename}</a>')
+        return super().format_value(value)
+
+
+# Кастомная форма для inline
+class PaymentReceiptInlineForm(forms.ModelForm):
+    class Meta:
+        model = PaymentReceipt
+        fields = "__all__"
+        widgets = {
+            'image': PresignedImageWidget,
+        }
+
+
+class PaymentReceiptInline(admin.TabularInline):
+    model = PaymentReceipt
+    form = PaymentReceiptInlineForm
+    extra = 1
+    readonly_fields = ["uploaded_at", "preview"]
+    fields = ["image", "preview", "uploaded_at"]
+
+    def preview(self, obj):
+        if obj.image:
+            url = get_presigned_url(obj.image.name)
+            return format_html(
+                '<a href="{0}" target="_blank">'
+                '<img src="{0}" width="200"/>'
+                '</a>',
+                url
+            )
+        return "-"
+    preview.short_description = "Preview"
+
+
 class PaymentAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     form = PaymentForm
 
     class Media:
         js = ['js/change_payment_form.js']
+
+    inlines = [PaymentReceiptInline]
 
     ordering = ['-created_at']
     list_display = [
@@ -446,3 +495,80 @@ def update_account_balance(sender, instance, **kwargs):
 
 
 admin.site.register(Payment, PaymentAdmin)
+
+
+User = get_user_model()
+
+
+# Кастомный фильтр по пользователям
+class PaymentUserFilter(SimpleListFilter):
+    title = "Payment User"
+    parameter_name = "payment_user"
+
+    def lookups(self, request, model_admin):
+        if request.user.is_superuser:
+            users = User.objects.all()
+            return [(u.id, u.email) for u in users]
+        return []
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(payment__user__id=self.value())
+        return queryset
+
+
+@admin.register(PaymentReceipt)
+class PaymentReceiptAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+
+    # ОТКЛЮЧИТЬ действия в разделе
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    related_user_field = "payment__user"
+    list_display = (
+        "uploaded_at",
+        "payment__id",
+        "image_link",
+        )
+    readonly_fields = (
+        "payment",
+        "uploaded_at",
+        "image_link",
+        "payment_user_email",
+        )
+    search_fields = ("payment__id",)
+
+    # Добавляем фильтр по юзерам только для суперюзеров
+    def get_list_filter(self, request):
+        filters = [
+            ("uploaded_at", DateTimeRangeFilterBuilder()),
+        ]
+        if request.user.is_superuser:
+            filters.append(PaymentUserFilter)
+        return filters
+
+    # Формируем поля формы: убираем 'image', оставляем только превью
+    fields = ("payment", "image_link", "payment_user_email", "uploaded_at")
+
+    def image_link(self, obj):
+        """Показывает превью изображения через presigned URL."""
+        if obj.image:
+            url = get_presigned_url(obj.image.name)
+            return format_html(
+                '<a href="{0}" target="_blank">'
+                '<img src="{0}" width="200"/>'
+                '</a>',
+                url
+            )
+        return "-"
+    image_link.short_description = "Receipt Preview"
+
+    def payment_user_email(self, obj):
+        return obj.payment.user.email
+    payment_user_email.short_description = "User"

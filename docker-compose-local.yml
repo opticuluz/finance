@@ -24,6 +24,12 @@ services:
       - DB_USER=postgres_user
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+      - MINIO_PUBLIC_DOMAIN=${MINIO_PUBLIC_DOMAIN}
     container_name: finance_app
     depends_on:
       - db
@@ -72,6 +78,11 @@ services:
       - DB_PASS=postgres_password
       - REDIS_HOST=redis
       - DJANGO_ALLOWED_HOSTS=${DOMAIN}
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
     volumes:
       - ./app:/app:consistent,uid=1000,gid=1000
     depends_on:
@@ -101,12 +112,61 @@ services:
     networks:
       - internal
 
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: finance_minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER: "on"
+    volumes:
+      - minio_data:/data
+    labels:
+      - "traefik.enable=true"
+
+      # MinIO S3 API (порт 9000)
+      - "traefik.http.routers.minio-s3.rule=Host(`${MINIO_PUBLIC_DOMAIN}`)"
+      - "traefik.http.routers.minio-s3.entrypoints=web"
+      - "traefik.http.routers.minio-s3.service=minio-s3"
+      - "traefik.http.services.minio-s3.loadbalancer.server.port=9000"
+
+      # MinIO Web Console (порт 9001)
+      - "traefik.http.routers.minio-console.rule=Host(`${MINIO_ADMIN_DOMAIN}`)"
+      - "traefik.http.routers.minio-console.entrypoints=web"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+
+      - "traefik.docker.network=proxy"
+    networks:
+      - internal
+      - proxy
+
+  minio-mc:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: finance_minio_mc
+    depends_on:
+      - minio
+    entrypoint: >
+      sh -c "
+        until mc alias set local http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD; do
+          echo 'Waiting for minio...'
+          sleep 2
+        done
+        mc mb -p local/receipts || true
+        mc anonymous set private local/receipts
+      "
+    networks:
+      - internal
+
 volumes:
   db-data:
   redis-data:
   static_data:
   media_data:
   logs_data:
+  minio_data:
 
 networks:
   proxy:
