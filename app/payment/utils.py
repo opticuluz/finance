@@ -7,8 +7,11 @@ def get_presigned_url(key, expires_in=3600):
     # Internal endpoint для обращения к MinIO
     internal_endpoint = settings.AWS_S3_ENDPOINT_URL
 
-    # Публичный хост для presigned URL
-    public_host = "http://" + settings.MINIO_PUBLIC_DOMAIN
+    if settings.DEBUG:
+        scheme = "http://"
+    else:
+        scheme = "https://"
+    public_host = scheme + settings.MINIO_PUBLIC_DOMAIN
 
     s3 = boto3.client(
         "s3",
