@@ -1,3 +1,5 @@
+import os
+import hashlib
 from django.db import models
 from django.conf import settings
 from account.models import Account, CurrencyHistory
@@ -10,6 +12,10 @@ from django.utils import timezone
 from decimal import Decimal, ROUND_HALF_UP
 from account.currency_conversion import base_currency_rate
 from constance import config
+from finance.storage import ReceiptStorage
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from .tasks import compress_receipt
 
 
 PAYMENT_TYPE_CHOICES = [
@@ -151,3 +157,53 @@ def calculate_amount_in_base_currency(instance, **kwargs):
         #     %
         #     {'currency': base_currency}
         # )
+
+
+def get_user_folder(user_id: int) -> str:
+    """
+    Генерируем уникальный, но безопасный префикс для пользователя
+    на основе его id, используя SHA256 и берем первые 8 символов.
+    """
+    hash_obj = hashlib.sha256(str(user_id).encode())
+    return hash_obj.hexdigest()[:8]  # например: 'a1b2c3d4'
+
+
+def receipt_upload_to(instance, filename):
+    """
+    Формирует путь с папкой по пользователю + подпапкой по Payment.id:
+    receipts/<user_hash>/<payment_id>/filename.jpg
+    """
+    user_id = instance.payment.user.id
+    user_folder = get_user_folder(user_id)
+
+    payment_folder = str(instance.payment.id)
+
+    return os.path.join(user_folder, payment_folder, filename)
+
+
+class PaymentReceipt(models.Model):
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="receipts"
+    )
+    image = models.ImageField(
+        storage=ReceiptStorage(),
+        upload_to=receipt_upload_to
+        )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Receipt for Payment {self.payment.id}"
+
+
+@receiver(post_save, sender=PaymentReceipt)
+def compress_payment_receipt(sender, instance, created, **kwargs):
+    if created and instance.image:
+        compress_receipt.delay(instance.image.name)
+
+
+@receiver(post_delete, sender=PaymentReceipt)
+def delete_receipt_file(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)

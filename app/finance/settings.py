@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 import os
 from pathlib import Path
+from django.conf import settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -57,6 +58,7 @@ INSTALLED_APPS = [
     'goal',
     'crypto',
     'tag',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -232,3 +234,19 @@ LOGGING = {
         },
     },
 }
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = os.environ.get("MINIO_ROOT_USER")
+AWS_SECRET_ACCESS_KEY = os.environ.get("MINIO_ROOT_PASSWORD")
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+
+AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+
+AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+AWS_S3_ADDRESSING_STYLE = "path"
+
+AWS_S3_USE_SSL = os.environ.get("AWS_S3_USE_SSL", "False").lower() == "true"
+AWS_DEFAULT_ACL = None
+
+MINIO_PUBLIC_DOMAIN = os.environ.get("MINIO_PUBLIC_DOMAIN")
