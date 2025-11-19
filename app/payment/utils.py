@@ -1,17 +1,19 @@
 import boto3
 from botocore.client import Config
 from django.conf import settings
+from urllib.parse import urlparse, urlunparse
 
 
 def get_presigned_url(key, expires_in=3600):
-    # Internal endpoint для обращения к MinIO
+
     internal_endpoint = settings.AWS_S3_ENDPOINT_URL
 
     if settings.DEBUG:
-        scheme = "http://"
+        final_scheme = "http"
     else:
-        scheme = "https://"
-    public_host = scheme + settings.MINIO_PUBLIC_DOMAIN
+        final_scheme = "https"
+    
+    public_netloc = settings.MINIO_PUBLIC_DOMAIN 
 
     s3 = boto3.client(
         "s3",
@@ -28,11 +30,10 @@ def get_presigned_url(key, expires_in=3600):
         ExpiresIn=expires_in
     )
 
-    # Меняем хост в URL на публичный
-    from urllib.parse import urlparse, urlunparse
-
     parsed = urlparse(url)
     parsed = parsed._replace(
-        netloc=public_host.replace("http://", "").replace("https://", "")
-        )
+        scheme=final_scheme,
+        netloc=public_netloc
+    )
+    
     return urlunparse(parsed)
