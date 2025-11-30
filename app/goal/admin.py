@@ -95,7 +95,7 @@ class GoalItemAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'get_amount',
         'currency',
         'amount_in_base',
-        'created_at'
+        'updated_at'
     ]
     list_filter = ['user', 'currency']
     search_fields = ['title']
