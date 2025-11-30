@@ -52,7 +52,7 @@ class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
                     )
             }
         ),
-                (
+        (
             _('Metadata'),
             {
                 'fields': (
