@@ -9,7 +9,7 @@ from django import forms
 class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
 
     ordering = ['title']
-    filter_horizontal = ('accounts', 'items')
+    filter_horizontal = ('accounts',)
     list_display = [
         'title',
         'sum_in_base',
