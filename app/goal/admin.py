@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 from .models import Goal, GoalItem
 from user.mixins import UserRestrictedAdminMixin
 from account.models import Account
@@ -21,6 +22,47 @@ class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         ]
     list_filter = ['user']
     search_fields = ['title']
+    fieldsets = (
+        (None, {'fields': ('title',)}),
+        (
+            _('Goal Details'),
+            {
+                'fields': (
+                    'items',
+                    'sum_in_base',
+                )
+            }
+        ),
+        (
+            _('Funding Details & Goal Gap'),
+            {
+                'fields': (
+                    'accounts',
+                    'remaining_sum_in_base',
+                ),
+            }
+        ),
+        (
+            _('Calculation Details'),
+            {
+                'fields': (
+                    'calculation_method',
+                    'amount_per_month',
+                    'last_date',
+                    )
+            }
+        ),
+        (
+            _('Metadata'),
+            {
+                'fields': (
+                    'user',
+                    'created_at',
+                    'updated_at',
+                    )
+            }
+        ),
+    )
     readonly_fields = [
         'sum_in_base',
         'remaining_sum_in_base',
