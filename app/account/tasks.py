@@ -3,11 +3,10 @@ from finance.celery import app
 import celery
 from account.models import Account, Currency, CurrencyHistory
 from crypto.models import CryptoCurrency
-from goal.models import Goal
+from goal.models import Goal, GoalItem
 from payment.models import Payment
 import requests
 from constance import config
-from account.currency_conversion import base_currency_rate
 from decimal import Decimal, ROUND_HALF_UP
 from logs.models import LogEntry, LogEntryCrypto
 from payment.models import calculate_amount_in_base_currency
@@ -17,6 +16,7 @@ from report.tasks import create_report
 from django.db import transaction
 from dateutil import parser
 from payment.admin import calculate_balance_in_base_currency
+from django.db.models import Sum
 
 
 @app.task
@@ -165,30 +165,23 @@ def recalculate_goal_data():
 @app.task
 def recalculate_goal_sum_in_base_currency():
 
-    goals = Goal.objects.all()
+    items = GoalItem.objects.select_related('currency').all()
 
     with transaction.atomic():
+        for item in items:
+            try:
+                item.save()
+            except Exception:
+                GoalItem.objects.filter(
+                    id=item.id
+                    ).update(amount_in_base=Decimal('0.00'))
+
+        goals = Goal.objects.all()
         for goal in goals:
-            if goal.currency.title == config.BASE_CURRENCY:
-                # account.balance_in_base_currency = account.balance
-                Goal.objects.filter(id=goal.id).update(
-                    sum_in_base=goal.sum
-                    )
-            else:
-                rate = goal.currency.rate
-                if rate is None:
-                    # account.balance_in_base_currency = Decimal('0.0')
-                    Goal.objects.filter(id=goal.id).update(
-                        sum_in_base=Decimal('0.0')
-                        )
-                else:
-                    rate = Decimal(base_currency_rate()) / rate
-                    # account.balance_in_base_currency = Decimal(
-                    #     account.balance
-                    #     ) * rate
-                    Goal.objects.filter(id=goal.id).update(
-                        sum_in_base=Decimal(goal.sum) * rate
-                    )
+            total = goal.items.aggregate(
+                total=Sum('amount_in_base')
+                )['total'] or Decimal('0.00')
+            Goal.objects.filter(id=goal.id).update(sum_in_base=total)
 
 
 @app.task
