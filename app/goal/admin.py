@@ -5,11 +5,16 @@ from user.mixins import UserRestrictedAdminMixin
 from account.models import Account
 import decimal
 from django import forms
+from adminsortable2.admin import SortableAdminMixin
 
 
-class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
+class GoalAdmin(
+        SortableAdminMixin,
+        UserRestrictedAdminMixin,
+        admin.ModelAdmin
+        ):
 
-    ordering = ['title']
+    ordering = ['my_order']
     filter_horizontal = ('accounts', 'items')
     list_display = [
         'title',
@@ -18,7 +23,8 @@ class GoalAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
         'calculation_method',
         'last_date',
         'amount_per_month',
-        'updated_at'
+        'updated_at',
+        'my_order'
         ]
     list_filter = ['user']
     search_fields = ['title']
