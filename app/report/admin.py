@@ -9,6 +9,7 @@ from datetime import datetime
 from django.utils.http import urlencode
 from django.shortcuts import redirect
 from rangefilter.filters import DateRangeFilterBuilder
+from django.utils.formats import get_format
 
 
 class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
@@ -19,8 +20,10 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             'created_at__range__gte' not in request.GET
             and 'created_at__range__lte' not in request.GET
         ):
+            input_formats = get_format('DATE_INPUT_FORMATS')
+            date_fmt = input_formats[0] if input_formats else '%Y-%m-%d'
             current_year = now().year
-            start_date = datetime(current_year, 1, 1).strftime('%d.%m.%Y')
+            start_date = datetime(current_year, 1, 1).strftime(date_fmt)
             params = dict(request.GET.copy())
             params['created_at__range__gte'] = start_date
             return redirect(f"{request.path}?{urlencode(params)}")
@@ -76,13 +79,15 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             'created_at__range__gte' not in request.GET
             and 'created_at__range__lte' not in request.GET
         ):
+            input_formats = get_format('DATE_INPUT_FORMATS')
+            date_fmt = input_formats[0] if input_formats else '%Y-%m-%d'
             current_year = now().year
             current_month = now().month
             start_date = datetime(
                 current_year,
                 current_month,
                 1
-                ).strftime('%d.%m.%Y')
+                ).strftime(date_fmt)
             params = dict(request.GET.copy())
             params['created_at__range__gte'] = start_date
             return redirect(f"{request.path}?{urlencode(params)}")
