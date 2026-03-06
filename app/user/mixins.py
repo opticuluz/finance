@@ -28,7 +28,6 @@ class UserRestrictedAdminMixin:
         return list_filter
 
     def save_model(self, request, obj, form, change):
-        # Если модель имеет поле user напрямую, автоматически сохраняем его
-        if hasattr(obj, "user"):
-            obj.user = request.user
+        if hasattr(obj, "user_id") and not obj.user_id:
+            obj.user_id = request.user.pk
         super().save_model(request, obj, form, change)
