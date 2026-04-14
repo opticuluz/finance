@@ -14,4 +14,4 @@ django-autocomplete-light>=3.11.0,<3.12
 django-two-factor-auth[phonenumberslite]>=1.17.0,<1.18
 django-storages[boto3]>=1.14.6,<1.15
 boto3>=1.40.74,<1.41
-Pillow>=12.1.1,<12.2
+Pillow>=12.2.0,<12.3
