@@ -5,7 +5,7 @@ from payment.admin import UserCategoryFilter
 from django.db.models import F
 from django.db.models.functions import TruncMonth
 from django.utils.timezone import now
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.utils.http import urlencode
 from django.shortcuts import redirect
 from rangefilter.filters import DateRangeFilterBuilder
@@ -23,7 +23,9 @@ class ReportAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             input_formats = get_format('DATE_INPUT_FORMATS')
             date_fmt = input_formats[0] if input_formats else '%Y-%m-%d'
             current_year = now().year
-            start_date = datetime(current_year, 1, 1).strftime(date_fmt)
+            start_date = (
+                datetime(current_year, 1, 1) - timedelta(days=1)
+                ).strftime(date_fmt)
             params = dict(request.GET.copy())
             params['created_at__range__gte'] = start_date
             return redirect(f"{request.path}?{urlencode(params)}")
@@ -83,11 +85,9 @@ class ReportCategoryAdmin(UserRestrictedAdminMixin, admin.ModelAdmin):
             date_fmt = input_formats[0] if input_formats else '%Y-%m-%d'
             current_year = now().year
             current_month = now().month
-            start_date = datetime(
-                current_year,
-                current_month,
-                1
-                ).strftime(date_fmt)
+            start_date = (
+                datetime(current_year, current_month, 1) - timedelta(days=1)
+            ).strftime(date_fmt)
             params = dict(request.GET.copy())
             params['created_at__range__gte'] = start_date
             return redirect(f"{request.path}?{urlencode(params)}")
